@@ -1,2 +1,1 @@
-# akka-tools
-akka-tools
+# akka-tools [![Build Status](https://travis-ci.org/evolution-gaming/akka-tools.svg)](https://travis-ci.org/evolution-gaming/akka-tools) [![Coverage Status](https://coveralls.io/repos/evolution-gaming/akka-tools/badge.svg)](https://coveralls.io/r/evolution-gaming/akka-tools) [ ![Download](https://api.bintray.com/packages/evolutiongaming/Maven/akka-tools/images/download.svg) ](https://bintray.com/evolutiongaming/Maven/akka-tools/_latestVersion)
