@@ -1,10 +1,16 @@
-organization := "com.evolutiongaming"
-
-bintrayOrganization := Some("evolutiongaming")
-
 name := "akka-tools"
 
-version := "0.1-SNAPSHOT"
+organization := "com.evolutiongaming"
+
+homepage := Some(new URL("http://github.com/evolution-gaming/akka-tools"))
+
+startYear := Some(2016)
+
+organizationName := "Evolution Gaming"
+
+organizationHomepage := Some(url("http://evolutiongaming.com"))
+
+bintrayOrganization := Some("evolutiongaming")
 
 scalaVersion := "2.11.8"
 
