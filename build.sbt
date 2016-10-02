@@ -31,8 +31,8 @@ val AkkaVersion = "2.4.11"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % AkkaVersion,
-  "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % "test",
-  "org.scalatest" %% "scalatest" % "3.0.0" % "test"
+  "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
+  "org.scalatest" %% "scalatest" % "3.0.0" % Test
 )
 
 licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")))
