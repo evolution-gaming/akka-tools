@@ -10,6 +10,6 @@ after_success: sbt coverageReport coveralls
 
 notifications:
   slack:
-    on_success: change
+    on_success: never
     on_failure: always
     secure: "pqGDYEPrpQZ0s8KJibYLRYYS3gtlaDwmrHLvYJcsYvzg1BSk71Hl9dYlKA9+WD598StRnoQNyLLqS8FX9QNBURWpJrs6SZKEu3gr7D99SzKFNfs1pq/XsYFyLxBe4Sko5RO+Vc1oRv8I0+xo1TIYLW0p3TZNr0wd/E6HeX5TAtJksXusSiULSy4awzkLIlMvGHqaKWFNsXHSvtax0JbVyL5ouJ8XTU6oqZgYVum0OH9Sd+Db1D65H46johRh6Y+t/0yJ0sBP3Cx+2RymTjk6dVqsUc0hGttpgN28VzhoHuQpfjl26AJhYzMctpcAw2YOgGaFBY1geykyPrNmq/+/dsBlUI+vC89n5c11yo12BuV5Z0xAW+y3Uxv2+cM9RQEz4xXcMzZe2HtoaeHpe8dfarsps7aA0wXLW0HmKoPZMLPz+k5DFjc2k6ynP8YrGTaWGQnvRdyFqyfBrMBr2f4+tnB83v/rKgZfDHNQgEoVHXbbAIY2mkZpbLgkjbNLq+laxUnMcDTMvh12UexKSVolxEmK/CUaZMyLyBJDw84y6nBYE+v5bGDVv+UpNRbHtzvWjcQDXJLU5IWH0lscqfprwWq2eMwN8fXkgQsvcejDWNbXpJwcdyVqOPdtcRXC3Wm0ORc6X2Nij8ehLtqM+U7Q+GswwC/4S4dKkVcFsQQ7g/w="
