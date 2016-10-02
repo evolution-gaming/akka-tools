@@ -1,6 +1,6 @@
 package com.evolutiongaming.serialization
 
-import java.nio.charset.Charset
+failbuildimport java.nio.charset.Charset
 
 import akka.serialization.SerializerWithStringManifest
 
