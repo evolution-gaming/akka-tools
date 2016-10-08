@@ -25,7 +25,6 @@ class BackpressureBuffer[T] private(
   def receive(buffer: Queue[T], time: Long, id: Int): Receive = {
 
     def unbuffer(buffer: Queue[T], timeout: Duration) = {
-      log.debug(s"unbuffer when buffer.size: {}, timeout: {}", buffer.size, timeout)
       try onUnbuffer(buffer) catch {
         case NonFatal(e) => log.error(e, "Failed to apply func to {}", buffer)
       }

@@ -30,7 +30,8 @@ scalacOptions ++= Seq(
 val AkkaVersion = "2.4.11"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % AkkaVersion,
+  "com.github.t3hnar" %% "scalax" % "3.0",
+  "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
   "org.scalatest" %% "scalatest" % "3.0.0" % Test
 )
