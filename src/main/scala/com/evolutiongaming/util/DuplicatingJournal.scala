@@ -3,7 +3,7 @@ package com.evolutiongaming.util
 import akka.actor._
 import akka.persistence.{JournalFailure, PublicPersistence, Replicate, SnapshotFailure}
 
-abstract class DuplicatingActor(primaryName: String, secondaryName: String) extends Actor with ActorLogging {
+trait DuplicatingActor extends Actor with ActorLogging {
 
   val failureLogger = context actorOf FailureLogger.props
   val primary = actorFor(primaryName)
@@ -11,6 +11,10 @@ abstract class DuplicatingActor(primaryName: String, secondaryName: String) exte
   require(primary != secondary)
 
   def actorForId(name: String): ActorRef
+
+  def primaryName: String
+
+  def secondaryName: String
 
   def receive: Receive = {
     case x =>
@@ -32,16 +36,18 @@ object DuplicatingJournal {
   def props: Props = Props[DuplicatingJournal]
 }
 
-class DuplicatingJournal extends DuplicatingActor(
-  primaryName = "evolutiongaming.duplicating.journal.primary",
-  secondaryName = "evolutiongaming.duplicating.journal.secondary") {
+class DuplicatingJournal extends DuplicatingActor {
+  def primaryName = "evolutiongaming.duplicating.journal.primary"
+
+  def secondaryName = "evolutiongaming.duplicating.journal.secondary"
 
   def actorForId(id: String) = PublicPersistence(context.system).journalFor(id)
 }
 
-class DuplicatingSnapshotStore extends DuplicatingActor(
-  primaryName = "evolutiongaming.duplicating.snapshot-store.primary",
-  secondaryName = "evolutiongaming.duplicating.snapshot-store.secondary") {
+class DuplicatingSnapshotStore extends DuplicatingActor {
+  def primaryName = "evolutiongaming.duplicating.snapshot-store.primary"
+
+  def secondaryName = "evolutiongaming.duplicating.snapshot-store.secondary"
 
   def actorForId(id: String) = PublicPersistence(context.system).snapshotStoreFor(id)
 }
