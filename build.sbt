@@ -29,9 +29,13 @@ scalacOptions ++= Seq(
 
 val AkkaVersion = "2.4.11"
 
+resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
+
 libraryDependencies ++= Seq(
   "com.github.t3hnar" %% "scalax" % "3.0",
+  "com.evolutiongaming" %% "scala-tools" % "0.1",
   "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
+  "com.typesafe.akka" %% "akka-cluster" % AkkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
   "org.scalatest" %% "scalatest" % "3.0.0" % Test
 )
