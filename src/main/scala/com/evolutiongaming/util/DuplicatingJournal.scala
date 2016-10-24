@@ -54,9 +54,9 @@ class DuplicatingSnapshotStore extends DuplicatingActor {
 
 class FailureLogger extends Actor with ActorLogging {
   def receive: Receive = {
-    case JournalFailure(x)     => log.error(s"Error received from ${ sender() }: $x")
-    case SnapshotFailure(x)    => log.error(s"Error received from ${ sender() }: $x")
-    case Status.Failure(cause) => log.error(s"Error received from ${ sender() }: ", cause)
+    case JournalFailure(x)     => log.warning(s"Error received from ${ sender() }: $x")
+    case SnapshotFailure(x)    => log.warning(s"Error received from ${ sender() }: $x")
+    case Status.Failure(cause) => log.warning(s"Error received from ${ sender() }: ", cause)
   }
 }
 
