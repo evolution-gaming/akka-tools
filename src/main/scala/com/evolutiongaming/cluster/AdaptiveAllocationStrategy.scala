@@ -14,9 +14,9 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A table shard initially allocated at a node where the first access to a table actor occurs.
-  * Then table related messages from clients counted and a table shard reallocated to a node
-  * which receives most of client messages for the corresponding table
+  * An entity shard initially allocated at a node where the first access to an entity actor occurs.
+  * Then entity related messages from clients counted and an entity shard reallocated to a node
+  * which receives most of client messages for the corresponding entity
   */
 class AdaptiveAllocationStrategy(
   typeName: String,
