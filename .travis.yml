@@ -6,7 +6,7 @@ jdk: oraclejdk8
 
 script: sbt clean coverage test
 
-after_success: sbt coverageReport coveralls
+after_success: 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then sbt coverageReport coveralls; fi'
 
 notifications:
   slack:
