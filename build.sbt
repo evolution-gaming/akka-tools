@@ -44,7 +44,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-distributed-data-experimental" % AkkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
   "org.scalatest" %% "scalatest" % "3.0.0" % Test,
-  "org.mockito" % "mockito-core" % MockitoVersion
+  "org.mockito" % "mockito-core" % MockitoVersion % Test
 
 )
 
