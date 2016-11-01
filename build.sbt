@@ -28,15 +28,12 @@ scalacOptions ++= Seq(
 )
 
 val AkkaVersion = "2.4.11"
-val MetricsVersion = "3.1.2"
-val MockitoVersion = "1.9.5"
 
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies ++= Seq(
-  "com.github.t3hnar" %% "scalax" % "3.0",
   "com.evolutiongaming" %% "scala-tools" % "0.1",
-  "io.dropwizard.metrics" % "metrics-core" % MetricsVersion,
+  "io.dropwizard.metrics" % "metrics-core" % "3.1.2",
   "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding" % AkkaVersion,
@@ -44,7 +41,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-distributed-data-experimental" % AkkaVersion,
   "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
   "org.scalatest" %% "scalatest" % "3.0.0" % Test,
-  "org.mockito" % "mockito-core" % MockitoVersion % Test
+  "org.mockito" % "mockito-core" % "1.9.5" % Test
 
 )
 
