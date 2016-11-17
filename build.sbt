@@ -27,7 +27,7 @@ scalacOptions ++= Seq(
   "-Xfuture"
 )
 
-val AkkaVersion = "2.4.11"
+val AkkaVersion = "2.4.12"
 
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
