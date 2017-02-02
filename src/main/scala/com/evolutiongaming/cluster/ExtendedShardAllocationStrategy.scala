@@ -10,7 +10,6 @@ trait ExtendedShardAllocationStrategy extends ShardAllocationStrategy with LazyL
     case x: ClusterMsg =>
       val id = x.id
       val shardId = math.abs(id.hashCode % numberOfShards).toString
-      logger.debug(s"Sharding $id to shard $shardId")
       shardId
   }
 }
