@@ -43,7 +43,6 @@ class AdaptiveAllocationStrategy(
         increment(typeName, x.id)
         metricRegistry.meter(s"akka.persistence.$typeName.sender.${x.id}.$selfHost").mark()
       }
-      logger.debug(s"Sharding $typeName#${x.id} to shard ${x.id}")
       x.id
   }
 
@@ -121,8 +120,8 @@ class AdaptiveAllocationStrategy(
       clear(typeName, id)
     }
 
-    if (result.nonEmpty) logger.debug(
-      s"rebalance $typeName\n\t" +
+    if (result.nonEmpty) logger.info(
+      s"Rebalance $typeName\n\t" +
         s"current:${currentShardAllocations.mkString("\n\t\t", "\n\t\t", "")}\n\t" +
         s"rebalanceInProgress:\t$rebalanceInProgress\n\t" +
         s"result:\t$result")
