@@ -80,7 +80,7 @@ class AdaptiveAllocationStrategy(
           v <- counters get counterKey
         } yield (counterKey, v.value)
 
-        val maxNode = nodeCounters reduceOption[(String, BigInt)] {
+        val maxNode = nodeCounters.reduceOption[(String, BigInt)] {
           case ((key1, cnt1), (key2, cnt2)) => if (cnt1 >= cnt2) (key1, cnt1) else (key2, cnt2)
         }
 
