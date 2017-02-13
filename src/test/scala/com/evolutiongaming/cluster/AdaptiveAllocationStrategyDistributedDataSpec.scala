@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016-2017 Evolution Gaming Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.evolutiongaming.cluster
 
 import akka.TestDummyActorRef
@@ -44,10 +59,6 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     extractShardId(ClusterMsg(entityId, new Serializable {})) shouldBe entityId
 
     expectMsgPF() {
-      case Subscribe(EntityToNodeCountersKey, _) =>
-    }
-
-    expectMsgPF() {
       case Subscribe(`expectedCounterKey`, _) =>
     }
 
@@ -80,8 +91,6 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
 
   it should "correctly process counter updates from distributed data" in new Scope {
 
-    val proxy = AdaptiveAllocationStrategy.proxy.value
-
     val counter = PNCounter.empty + 2
 
     proxy ! Changed(expectedCounterKey)(counter)
@@ -103,11 +112,9 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
 
   it should "correctly process map updates from distributed data" in new Scope {
 
-    val proxy = AdaptiveAllocationStrategy.proxy.value
-
     AdaptiveAllocationStrategy.entityToNodeCounters should have size 0
 
-    val map = ORMultiMap.empty[String] + (expectedEntityKeyStr -> Set(expectedCounterKey._id))
+    override val map = ORMultiMap.empty[String] + (expectedEntityKeyStr -> Set(expectedCounterKey._id))
 
     proxy ! Changed(EntityToNodeCountersKey)(map)
 
@@ -117,21 +124,172 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     }
   }
 
-  it should "allocate shards on the requester node" in new Scope {
+  it should "allocate a shard on the requester node if the counters is empty" in new Scope {
     
-    val requester = TestProbe().testActor // mock[ActorRef]
+    val requester = TestProbe().testActor
 
     strategy.allocateShard(
       requester = requester,
-      shardId = "",
-      currentShardAllocations = Map.empty).futureValue shouldBe requester
+      shardId = entityId1,
+      currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe requester
+  }
+
+  it should "allocate a shard on a node (local) with the biggest counter value" in new Scope {
+
+    proxy ! Changed(EntityToNodeCountersKey)(map)
+
+    eventually {
+      AdaptiveAllocationStrategy.entityToNodeCounters should have size 4
+    }
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(100500, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(100, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(500, Platform.currentTime))
+
+    strategy.allocateShard(
+      requester = TestProbe().testActor,
+      shardId = entityId1,
+      currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe localAddressRef
+  }
+
+  it should "allocate a shard on a node (remote) with the biggest counter value" in new Scope {
+
+    proxy ! Changed(EntityToNodeCountersKey)(map)
+
+    eventually {
+      AdaptiveAllocationStrategy.entityToNodeCounters should have size 4
+    }
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(100, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(500, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(100500, Platform.currentTime))
+
+    strategy.allocateShard(
+      requester = TestProbe().testActor,
+      shardId = entityId1,
+      currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe anotherAddressRef2
   }
 
   it should "rebalance shards if the difference between non-home and home counters is bigger than rebalanceThreshold" in new Scope {
 
-    expectMsgPF() {
-      case Subscribe(EntityToNodeCountersKey, _) =>
+    proxy ! Changed(EntityToNodeCountersKey)(map)
+
+    (1 to 12) foreach { _ =>
+      expectMsgPF() {
+        case Subscribe(key: PNCounterKey, _) =>
+      }
     }
+
+    eventually {
+      AdaptiveAllocationStrategy.entityToNodeCounters should have size 4
+    }
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome2._id -> ValueData(counterHome2, Platform.currentTime - cleanupPeriodMillis))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome21._id -> ValueData(counterNonHome21, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome22._id -> ValueData(counterNonHome22, Platform.currentTime))
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome4._id -> ValueData(counterHome4, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome41._id -> ValueData(counterNonHome41, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome42._id -> ValueData(counterNonHome42, Platform.currentTime - cleanupPeriodMillis))
+
+    // should rebalance 1,3,4 and clear all
+    val result1 = strategy.rebalance(
+      shardAllocations,
+      rebalanceInProgress = Set.empty[ShardId]).futureValue
+
+    result1 shouldBe Set(entityId1, entityId3, entityId4)
+
+    // clear
+    (1 to 12) foreach { _ =>
+      expectMsgPF() {
+        case Update(key: PNCounterKey, WriteLocal, _) =>
+      }
+    }
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
+
+    // 1 is in progress - should rebalance 3
+    val result2 = strategy.rebalance(
+      shardAllocations,
+      rebalanceInProgress = Set[ShardId](entityId1)).futureValue
+
+    result2 shouldBe Set(entityId3)
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
+
+    // 1,3 is in progress - should not rebalance
+    val result3 = strategy.rebalance(
+      shardAllocations,
+      rebalanceInProgress = Set[ShardId](entityId3, entityId1)).futureValue
+
+    result3 shouldBe Set()
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
+
+    // limit rebalance to 1 - should rebalance 3
+    val strategy1 = AdaptiveAllocationStrategy(
+      typeName = typeName,
+      maxSimultaneousRebalance = 1,
+      rebalanceThreshold = RebalanceThreshold,
+      cleanupPeriod = CleanupPeriod,
+      metricRegistry = metricRegistry)(proxyProps = Props(new TestProxy))
+
+    val result5 = strategy1.rebalance(
+      shardAllocations,
+      rebalanceInProgress = Set.empty[ShardId]).futureValue
+
+    result5 shouldBe Set(entityId3)
+  }
+
+  abstract class Scope extends ActorScope with DefaultTimeout {
+
+    val MaxSimultaneousRebalance: Int = 10
+    val RebalanceThreshold: Int = 1000
+    val CleanupPeriod: FiniteDuration = 10.minutes
+
+    AdaptiveAllocationStrategy.counters.clear()
+    AdaptiveAllocationStrategy.entityToNodeCounters = Map.empty
+    AdaptiveAllocationStrategy.proxy = None
+
+    implicit val node = Cluster(system)
+
+    val typeName = "typeName"
+
+    val selfAddress = node.selfAddress.toString
+
+    def entityKey(entityId: String) = AdaptiveAllocationStrategy.genEntityKey(typeName, entityId)
+    def counterKey(entityId: String, address: String = selfAddress) =
+      AdaptiveAllocationStrategy.genCounterKey(entityKey(entityId), address)
+
+    val entityId = "entityId"
+    val expectedEntityKeyStr = entityKey(entityId)
+    val expectedCounterKey = PNCounterKey(counterKey(entityId))
 
     val cleanupPeriodMillis = CleanupPeriod.toMillis
 
@@ -150,6 +308,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
       mockedAddressRef(addr)
     }
 
+    val localAddressRef = mockedAddressRef(node.selfAddress)
     val anotherAddressRef1 = mockedHostRef("anotherAddress1")
     val anotherAddressRef2 = mockedHostRef("anotherAddress2")
 
@@ -202,131 +361,15 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
       (entityKeyStr3 -> Set(counterKeyHome3._id, counterKeyNonHome31._id, counterKeyNonHome32._id)) +
       (entityKeyStr4 -> Set(counterKeyNonHome41._id, counterKeyNonHome42._id, counterKeyHome4._id))
 
-    val proxy = AdaptiveAllocationStrategy.proxy.value
-
-    proxy ! Changed(EntityToNodeCountersKey)(map)
-
-    (1 to 12) foreach { _ =>
-      expectMsgPF() {
-        case Subscribe(key: PNCounterKey, _) =>
-      }
-    }
-
-    eventually {
-      AdaptiveAllocationStrategy.entityToNodeCounters should have size 4
-    }
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome2._id -> ValueData(counterHome2, Platform.currentTime - cleanupPeriodMillis))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome21._id -> ValueData(counterNonHome21, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome22._id -> ValueData(counterNonHome22, Platform.currentTime))
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome4._id -> ValueData(counterHome4, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome41._id -> ValueData(counterNonHome41, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome42._id -> ValueData(counterNonHome42, Platform.currentTime - cleanupPeriodMillis))
-
-    val currentShardAllocations = Map[ActorRef, immutable.IndexedSeq[ShardId]](
+    val shardAllocations = Map[ActorRef, immutable.IndexedSeq[ShardId]](
       anotherAddressRef1 -> immutable.IndexedSeq[ShardId](entityId2),
       anotherAddressRef2 -> immutable.IndexedSeq[ShardId](entityId4),
-      mockedAddressRef(node.selfAddress) -> immutable.IndexedSeq[ShardId](entityId3, entityId1))
+      localAddressRef -> immutable.IndexedSeq[ShardId](entityId3, entityId1))
 
-    // should rebalance 1,3,4 and clear all
-    val result1 = strategy.rebalance(
-      currentShardAllocations,
-      rebalanceInProgress = Set.empty[ShardId]).futureValue
-
-    result1 shouldBe Set(entityId1, entityId3, entityId4)
-
-    // clear
-    (1 to 12) foreach { _ =>
-      expectMsgPF() {
-        case Update(key: PNCounterKey, WriteLocal, _) =>
-      }
-    }
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
-
-    // 1 is in progress - should rebalance 3
-    val result2 = strategy.rebalance(
-      currentShardAllocations,
-      rebalanceInProgress = Set[ShardId](entityId1)).futureValue
-
-    result2 shouldBe Set(entityId3)
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
-
-    // 1,3 is in progress - should not rebalance
-    val result3 = strategy.rebalance(
-      currentShardAllocations,
-      rebalanceInProgress = Set[ShardId](entityId3, entityId1)).futureValue
-
-    result3 shouldBe Set()
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
-
-    AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
-    AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
-
-    // limit rebalance to 1 - should rebalance 3
-    val strategy1 = AdaptiveAllocationStrategy(
-      typeName = typeName,
-      maxSimultaneousRebalance = 1,
-      rebalanceThreshold = RebalanceThreshold,
-      cleanupPeriod = CleanupPeriod,
-      metricRegistry = metricRegistry)(proxyProps = Props(new TestProxy))
-
-    val result5 = strategy1.rebalance(
-      currentShardAllocations,
-      rebalanceInProgress = Set.empty[ShardId]).futureValue
-
-    result5 shouldBe Set(entityId3)
-  }
-
-  abstract class Scope extends ActorScope with DefaultTimeout {
-
-    val MaxSimultaneousRebalance: Int = 10
-    val RebalanceThreshold: Int = 1000
-    val CleanupPeriod: FiniteDuration = 10.minutes
-
-    AdaptiveAllocationStrategy.counters.clear()
-    AdaptiveAllocationStrategy.entityToNodeCounters = Map.empty
-    AdaptiveAllocationStrategy.proxy = None
-
-    implicit val node = Cluster(system)
-
-    val typeName = "typeName"
-
-    val selfAddress = node.selfAddress.toString
-
-    def entityKey(entityId: String) = AdaptiveAllocationStrategy.genEntityKey(typeName, entityId)
-    def counterKey(entityId: String, address: String = selfAddress) =
-      AdaptiveAllocationStrategy.genCounterKey(entityKey(entityId), address)
-
-    val entityId = "entityId"
-    val expectedEntityKeyStr = entityKey(entityId)
-    val expectedCounterKey = PNCounterKey(counterKey(entityId))
+    val noShard1ShardAllocations = Map[ActorRef, immutable.IndexedSeq[ShardId]](
+      anotherAddressRef1 -> immutable.IndexedSeq[ShardId](entityId2),
+      anotherAddressRef2 -> immutable.IndexedSeq[ShardId](entityId4),
+      localAddressRef -> immutable.IndexedSeq[ShardId](entityId3))
 
     val metricRegistry = mock[MetricRegistry]
     when(metricRegistry.meter(MM.anyString())) thenReturn mock[Meter]
@@ -337,6 +380,12 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
       rebalanceThreshold = RebalanceThreshold,
       cleanupPeriod = CleanupPeriod,
       metricRegistry = metricRegistry)(proxyProps = Props(new TestProxy))
+
+    expectMsgPF() {
+      case Subscribe(EntityToNodeCountersKey, _) =>
+    }
+
+    val proxy = AdaptiveAllocationStrategy.proxy.value
 
     class TestProxy extends AdaptiveAllocationStrategyDistributedDataProxy {
       override lazy val replicator = testActor

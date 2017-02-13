@@ -1,3 +1,18 @@
+/*
+ * Copyright 2016-2017 Evolution Gaming Limited
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.evolutiongaming.cluster
 
 import akka.actor._
@@ -30,9 +45,9 @@ class AdaptiveAllocationStrategy(
   import AdaptiveAllocationStrategy._
   import system.dispatcher
 
-  implicit val node = Cluster(system)
-  val selfAddress = node.selfAddress.toString
-  val selfHost = node.selfAddress.host getOrElse "127.0.0.1" replace (".", "_")
+  private implicit val node = Cluster(system)
+  private val selfAddress = node.selfAddress.toString
+  private val selfHost = node.selfAddress.host getOrElse "127.0.0.1" replace (".", "_")
 
   private val cleanupPeriodInMillis = cleanupPeriod.toMillis
 
@@ -41,24 +56,51 @@ class AdaptiveAllocationStrategy(
     case x: ClusterMsg =>
       if (!x.isInstanceOf[PersistenceQuery]) {
         increment(typeName, x.id)
-        metricRegistry.meter(s"akka.persistence.$typeName.sender.${x.id}.$selfHost").mark()
+        metricRegistry.meter(s"persistence.$typeName.sender.${x.id}.$selfHost").mark()
       }
       x.id
   }
 
   /**
-    * Allocates the shard on the requester node,
-    * also should allocate the shard during its rebalance
+    * Allocates the shard on a node with the most client messages received from
+    * (or on the requester node if no message statistic have been collected yet).
+    * Also should allocate the shard during its rebalance.
     */
   def allocateShard(
     requester: ActorRef,
     shardId: ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = {
+
+    val entityKey = genEntityKey(typeName, shardId)
+    val toNode = entityToNodeCounters get entityKey match {
+      case None              => requester
+      case Some(counterKeys) =>
+        val nodeCounters = for {
+          counterKey <- counterKeys
+          v <- counters get counterKey
+        } yield (counterKey, v.value)
+
+        val maxNode = nodeCounters reduceOption[(String, BigInt)] {
+          case ((key1, cnt1), (key2, cnt2)) => if (cnt1 >= cnt2) (key1, cnt1) else (key2, cnt2)
+        }
+
+        maxNode match {
+          case None                  => requester
+          case Some((counterKey, _)) =>
+            val addressFromCounterKey = addressByCounterKey(counterKey)
+            val maxNodeAddress = currentShardAllocations.keys find { key =>
+              key.toString contains addressFromCounterKey
+            }
+            maxNodeAddress getOrElse requester
+        }
+    }
+
     logger.debug(
-      s"allocateShard $typeName (on requester)\n\t" +
+      s"AllocateShard $typeName\n\t" +
+        s"on node:\t$toNode\n\t" +
         s"requester:\t$requester\n\t" +
         s"shardId:\t$shardId\n\t")
-    Future successful requester
+    Future successful toNode
   }
 
   /** Should be executed every rebalance-interval only on a node with ShardCoordinator */
@@ -106,7 +148,7 @@ class AdaptiveAllocationStrategy(
           // access from a non-home node is counted twice - on the non-home node and on the home node
           if (maxNonHomeValue > homeValue - nonHomeValuesSum + rebalanceThreshold) {
             shardsToClear += shard
-            metricRegistry.meter(s"akka.persistence.$typeName.rebalance.$shard").mark()
+            metricRegistry.meter(s"persistence.$typeName.rebalance.$shard").mark()
             Some(shard)
           } else None
         }
@@ -142,7 +184,7 @@ object AdaptiveAllocationStrategy {
     (proxyProps: Props = Props[AdaptiveAllocationStrategyDistributedDataProxy])
     (implicit system: ActorSystem): AdaptiveAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
-    if (proxy.isEmpty) this.synchronized {
+    if (proxy.isEmpty) this synchronized {
       if (proxy.isEmpty) proxy = Some(system actorOf proxyProps)
     }
     new AdaptiveAllocationStrategy(
@@ -158,6 +200,8 @@ object AdaptiveAllocationStrategy {
     s"$typeName#$id" // should always start with typeName
   def genCounterKey(entityKey: String, selfAddress: String): String =
     s"$entityKey#$selfAddress" // should always end with selfAddress
+  def addressByCounterKey(address: String): String =
+    (address split "#") lift 2 getOrElse "" // typeName#shardId#address
 
   @volatile
   private[cluster] var proxy: Option[ActorRef] = None
