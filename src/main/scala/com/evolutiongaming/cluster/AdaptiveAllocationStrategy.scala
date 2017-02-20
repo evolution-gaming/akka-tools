@@ -59,7 +59,7 @@ class AdaptiveAllocationStrategy(
           increment(typeName, x.id)
           metricRegistry.meter(s"persistence.$typeName.sender.${ x.id }.$selfHost").mark()
         }
-        metricRegistry.meter(s"persistence.$typeName.command.${ x.id }.${x.getClass.getCanonicalName}.$selfHost").mark()
+        metricRegistry.meter(s"persistence.$typeName.command.${ x.id }.${x.getClass.getSimpleName}.$selfHost").mark()
       }
       x.id
   }
