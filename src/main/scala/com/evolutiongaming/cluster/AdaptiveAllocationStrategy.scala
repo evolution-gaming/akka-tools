@@ -55,8 +55,13 @@ class AdaptiveAllocationStrategy(
   override def extractShardId(numberOfShards: Int): ShardRegion.ExtractShardId = {
     case x: ClusterMsg =>
       if (!x.isInstanceOf[PersistenceQuery]) {
-        increment(typeName, x.id)
-        metricRegistry.meter(s"persistence.$typeName.sender.${x.id}.$selfHost").mark()
+        x match {
+          case cc: CountControl if cc.doNotCount =>
+          case _                                 =>
+            increment(typeName, x.id)
+            metricRegistry.meter(s"persistence.$typeName.sender.${ x.id }.$selfHost").mark()
+        }
+        metricRegistry.meter(s"persistence.$typeName.command.${ x.id }.${x.getClass.getSimpleName}.$selfHost").mark()
       }
       x.id
   }
