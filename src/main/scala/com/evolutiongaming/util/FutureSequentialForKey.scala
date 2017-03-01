@@ -5,8 +5,8 @@ import akka.pattern.ask
 import akka.util.Timeout
 
 import scala.collection.concurrent.TrieMap
-import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 
@@ -17,20 +17,21 @@ trait FutureSequentialForKey extends Extension {
   def apply[T](key: Any)(f: => T): Future[T]
 }
 
-private[util] class FutureSequentialForKeyImpl(implicit system: ExtendedActorSystem)
+class FutureSequentialForKeyImpl(factory: ActorRefFactory, name: Option[String])(implicit ec: ExecutionContext)
   extends FutureSequentialForKey {
 
-  import system.dispatcher
-
   private implicit val timeout = Timeout(5.seconds)
-  private lazy val supervisor = system.actorOf(Supervisor.props, "FutureSequentialForKey")
+  private lazy val supervisor = {
+    val props = Supervisor.props
+    name map { name => factory.actorOf(props, name) } getOrElse factory.actorOf(props)
+  }
   private val refs = TrieMap.empty[Any, ActorRef]
 
   def apply[T](key: Any)(f: => T): Future[T] = {
     val enqueue = FutureSupervisor.Enqueue(() => f)
     val future = refs.get(key)
       .map { ref => ref ? enqueue }
-      .getOrElse {supervisor ? Supervisor.Create(key, enqueue)}
+      .getOrElse { supervisor ? Supervisor.Create(key, enqueue) }
     for {
       f1 <- future.mapTo[Future[T]]
       f2 <- f1
@@ -96,5 +97,7 @@ object FutureSequentialForKey extends ExtensionId[FutureSequentialForKey] {
     def apply[T](key: Any)(f: => T) = Future fromTry Try(f)
   }
 
-  def createExtension(system: ExtendedActorSystem) = new FutureSequentialForKeyImpl()(system)
+  def createExtension(system: ExtendedActorSystem) = {
+    new FutureSequentialForKeyImpl(system, Some("FutureSequentialForKey"))(system.dispatcher)
+  }
 }
