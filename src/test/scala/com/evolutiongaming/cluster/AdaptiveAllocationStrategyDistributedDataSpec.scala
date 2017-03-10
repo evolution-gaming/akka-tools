@@ -243,13 +243,6 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
 
     result1 shouldBe Set(entityId1, entityId4)
 
-    // clear
-    (1 to 9) foreach { _ =>
-      expectMsgPF() {
-        case Update(key: PNCounterKey, WriteLocal, _) =>
-      }
-    }
-
     AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))

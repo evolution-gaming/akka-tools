@@ -111,8 +111,9 @@ class AdaptiveAllocationStrategy(
             val correctedMaxNode = maxOption(correctedCounters)
 
             correctedMaxNode match {
-              case None                                  => requester
-              case Some((correctedMaxNodeCounterKey, _)) =>
+              case None                                                  => requester
+              case _ if maxNodeValue < currentShardAllocations.keys.size => requester
+              case Some((correctedMaxNodeCounterKey, _))                 =>
                 val addressFromCounterKey = addressByCounterKey(correctedMaxNodeCounterKey)
                 val correctedMaxNodeAddress = currentShardAllocations.keys find { key =>
                   key.toString contains addressFromCounterKey
@@ -175,9 +176,9 @@ class AdaptiveAllocationStrategy(
           // access from a non-home node is counted twice - on the non-home node and on the home node
           val correctedHomeValue =
             if (homeValue > nonHomeValuesSum) homeValue - nonHomeValuesSum else homeValue
-          val rebalanceThreshold = ((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100
+          val rebalanceThreshold =
+            (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) + 10
           if (maxNonHomeValue > correctedHomeValue + rebalanceThreshold) {
-            shardsToClear += shard
             metricRegistry.meter(s"persistence.$typeName.rebalance.$shard").mark()
             Some(shard)
           } else None
@@ -187,7 +188,7 @@ class AdaptiveAllocationStrategy(
 
     val result = limitRebalance(shardsToRebalance.toSet)
 
-    for (id <- shardsToClear) {
+    for (id <- shardsToClear -- result) {
       logger.debug(s"Shard $typeName#$id counter cleanup")
       clear(typeName, id)
     }
