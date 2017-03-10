@@ -37,7 +37,7 @@ class AdaptiveAllocationStrategy(
   typeName: String,
   system: ActorSystem,
   maxSimultaneousRebalance: Int,
-  rebalanceThreshold: Int,
+  rebalanceThresholdPercent: Int,
   cleanupPeriod: FiniteDuration,
   metricRegistry: MetricRegistry)
   extends ExtendedShardAllocationStrategy with LazyLogging {
@@ -76,35 +76,57 @@ class AdaptiveAllocationStrategy(
     shardId: ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = {
 
+    def maxOption(counters: Set[(String, BigInt)]): Option[(String, BigInt)] =
+      counters.reduceOption[(String, BigInt)] {
+        case ((key1, cnt1), (key2, cnt2)) => if (cnt1 >= cnt2) (key1, cnt1) else (key2, cnt2)
+      }
+
     val entityKey = genEntityKey(typeName, shardId)
     val toNode = entityToNodeCounters get entityKey match {
       case None              => requester
       case Some(counterKeys) =>
+
         val nodeCounters = for {
           counterKey <- counterKeys
           v <- counters get counterKey
         } yield (counterKey, v.value)
 
-        val maxNode = nodeCounters.reduceOption[(String, BigInt)] {
-          case ((key1, cnt1), (key2, cnt2)) => if (cnt1 >= cnt2) (key1, cnt1) else (key2, cnt2)
-        }
+        val maxNode = maxOption(nodeCounters)
 
         maxNode match {
-          case None                  => requester
-          case Some((counterKey, _)) =>
-            val addressFromCounterKey = addressByCounterKey(counterKey)
-            val maxNodeAddress = currentShardAllocations.keys find { key =>
-              key.toString contains addressFromCounterKey
+          case None                                    => requester
+          case Some((maxNodeCounterKey, maxNodeValue)) =>
+
+            // access from a non-home node is counted twice - on the non-home node and on the home node
+            // so, to get correct value of the max counter we need to deduct the sum of other counters from it
+            // note, that the shard here is deallocated and not present in currentShardAllocations
+
+            val nonMaxNodeCounters = nodeCounters - (maxNodeCounterKey -> maxNodeValue)
+            val nonMaxNodeCountersSum = (nonMaxNodeCounters map { case (_, cnt) => cnt }).sum
+
+            val correctedCounters = if (maxNodeValue >= nonMaxNodeCountersSum)
+              nonMaxNodeCounters + (maxNodeCounterKey -> (maxNodeValue - nonMaxNodeCountersSum))
+            else nodeCounters
+
+            val correctedMaxNode = maxOption(correctedCounters)
+
+            correctedMaxNode match {
+              case None                                  => requester
+              case Some((correctedMaxNodeCounterKey, _)) =>
+                val addressFromCounterKey = addressByCounterKey(correctedMaxNodeCounterKey)
+                val correctedMaxNodeAddress = currentShardAllocations.keys find { key =>
+                  key.toString contains addressFromCounterKey
+                }
+                correctedMaxNodeAddress getOrElse requester
             }
-            maxNodeAddress getOrElse requester
         }
     }
 
     logger.debug(
       s"AllocateShard $typeName\n\t" +
+        s"shardId:\t$shardId\n\t" +
         s"on node:\t$toNode\n\t" +
-        s"requester:\t$requester\n\t" +
-        s"shardId:\t$shardId\n\t")
+        s"requester:\t$requester\n\t")
     Future successful toNode
   }
 
@@ -151,7 +173,10 @@ class AdaptiveAllocationStrategy(
           }
 
           // access from a non-home node is counted twice - on the non-home node and on the home node
-          if (maxNonHomeValue > homeValue - nonHomeValuesSum + rebalanceThreshold) {
+          val correctedHomeValue =
+            if (homeValue > nonHomeValuesSum) homeValue - nonHomeValuesSum else homeValue
+          val rebalanceThreshold = ((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100
+          if (maxNonHomeValue > correctedHomeValue + rebalanceThreshold) {
             shardsToClear += shard
             metricRegistry.meter(s"persistence.$typeName.rebalance.$shard").mark()
             Some(shard)
@@ -183,7 +208,7 @@ object AdaptiveAllocationStrategy {
   def apply(
     typeName: String,
     maxSimultaneousRebalance: Int,
-    rebalanceThreshold: Int,
+    rebalanceThresholdPercent: Int,
     cleanupPeriod: FiniteDuration,
     metricRegistry: MetricRegistry)
     (proxyProps: Props = Props[AdaptiveAllocationStrategyDistributedDataProxy])
@@ -196,7 +221,7 @@ object AdaptiveAllocationStrategy {
       typeName = typeName,
       system = system,
       maxSimultaneousRebalance = maxSimultaneousRebalance,
-      rebalanceThreshold = rebalanceThreshold,
+      rebalanceThresholdPercent = rebalanceThresholdPercent,
       cleanupPeriod = cleanupPeriod,
       metricRegistry: MetricRegistry)
   }

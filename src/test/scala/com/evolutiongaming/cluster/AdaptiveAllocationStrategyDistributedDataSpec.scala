@@ -78,7 +78,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     val timestamp = valueData.value.cleared
 
     // clear
-    AdaptiveAllocationStrategy.clear(typeName, entityId)
+    AdaptiveAllocationStrategy.clear(TypeName, entityId)
 
     expectMsgPF() {
       case Update(`expectedCounterKey`, WriteLocal, _) =>
@@ -125,7 +125,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
   }
 
   it should "allocate a shard on the requester node if the counters is empty" in new Scope {
-    
+
     val requester = TestProbe().testActor
 
     strategy.allocateShard(
@@ -170,6 +170,42 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
       currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe anotherAddressRef2
   }
 
+  it should "allocate a shard on a node (local) with the biggest counter value (respect cummulative home node counter)" in new Scope {
+
+    proxy ! Changed(EntityToNodeCountersKey)(map)
+
+    eventually {
+      AdaptiveAllocationStrategy.entityToNodeCounters should have size 4
+    }
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(500, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(100, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(700, Platform.currentTime))
+
+    strategy.allocateShard(
+      requester = TestProbe().testActor,
+      shardId = entityId1,
+      currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe localAddressRef
+  }
+
+  it should "allocate a shard on a node (remote) with the biggest counter value (respect cummulative home node counter)" in new Scope {
+
+    proxy ! Changed(EntityToNodeCountersKey)(map)
+
+    eventually {
+      AdaptiveAllocationStrategy.entityToNodeCounters should have size 4
+    }
+
+    AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(100, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(700, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(500, Platform.currentTime))
+
+    strategy.allocateShard(
+      requester = TestProbe().testActor,
+      shardId = entityId1,
+      currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe anotherAddressRef2
+  }
+
   it should "rebalance shards if the difference between non-home and home counters is bigger than rebalanceThreshold" in new Scope {
 
     proxy ! Changed(EntityToNodeCountersKey)(map)
@@ -200,15 +236,15 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome41._id -> ValueData(counterNonHome41, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome42._id -> ValueData(counterNonHome42, Platform.currentTime - cleanupPeriodMillis))
 
-    // should rebalance 1,3,4 and clear all
+    // should rebalance 1,4 and clear all
     val result1 = strategy.rebalance(
       shardAllocations,
       rebalanceInProgress = Set.empty[ShardId]).futureValue
 
-    result1 shouldBe Set(entityId1, entityId3, entityId4)
+    result1 shouldBe Set(entityId1, entityId4)
 
     // clear
-    (1 to 12) foreach { _ =>
+    (1 to 9) foreach { _ =>
       expectMsgPF() {
         case Update(key: PNCounterKey, WriteLocal, _) =>
       }
@@ -218,29 +254,45 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
 
+    AdaptiveAllocationStrategy.counters += (counterKeyHome2._id -> ValueData(counterHome2, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome21._id -> ValueData(counterNonHome21, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome22._id -> ValueData(counterNonHome22, Platform.currentTime))
+
     AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
 
-    // 1 is in progress - should rebalance 3
+    AdaptiveAllocationStrategy.counters += (counterKeyHome4._id -> ValueData(counterHome4, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome41._id -> ValueData(counterNonHome41, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome42._id -> ValueData(counterNonHome42, Platform.currentTime))
+
+    // 1 is in progress - should rebalance 4
     val result2 = strategy.rebalance(
       shardAllocations,
       rebalanceInProgress = Set[ShardId](entityId1)).futureValue
 
-    result2 shouldBe Set(entityId3)
+    result2 shouldBe Set(entityId4)
 
     AdaptiveAllocationStrategy.counters += (counterKeyHome1._id -> ValueData(counterHome1, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
 
+    AdaptiveAllocationStrategy.counters += (counterKeyHome2._id -> ValueData(counterHome2, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome21._id -> ValueData(counterNonHome21, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome22._id -> ValueData(counterNonHome22, Platform.currentTime))
+
     AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
 
-    // 1,3 is in progress - should not rebalance
+    AdaptiveAllocationStrategy.counters += (counterKeyHome4._id -> ValueData(counterHome4, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome41._id -> ValueData(counterNonHome41, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome42._id -> ValueData(counterNonHome42, Platform.currentTime))
+
+    // 1,4 is in progress - should not rebalance
     val result3 = strategy.rebalance(
       shardAllocations,
-      rebalanceInProgress = Set[ShardId](entityId3, entityId1)).futureValue
+      rebalanceInProgress = Set[ShardId](entityId4, entityId1)).futureValue
 
     result3 shouldBe Set()
 
@@ -248,15 +300,23 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome11._id -> ValueData(counterNonHome11, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome12._id -> ValueData(counterNonHome12, Platform.currentTime))
 
+    AdaptiveAllocationStrategy.counters += (counterKeyHome2._id -> ValueData(counterHome2, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome21._id -> ValueData(counterNonHome21, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome22._id -> ValueData(counterNonHome22, Platform.currentTime))
+
     AdaptiveAllocationStrategy.counters += (counterKeyHome3._id -> ValueData(counterHome3, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome31._id -> ValueData(counterNonHome31, Platform.currentTime))
     AdaptiveAllocationStrategy.counters += (counterKeyNonHome32._id -> ValueData(counterNonHome32, Platform.currentTime))
 
-    // limit rebalance to 1 - should rebalance 3
+    AdaptiveAllocationStrategy.counters += (counterKeyHome4._id -> ValueData(counterHome4, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome41._id -> ValueData(counterNonHome41, Platform.currentTime))
+    AdaptiveAllocationStrategy.counters += (counterKeyNonHome42._id -> ValueData(counterNonHome42, Platform.currentTime))
+
+    // limit rebalance to 1 - should rebalance 4
     val strategy1 = AdaptiveAllocationStrategy(
-      typeName = typeName,
+      typeName = TypeName,
       maxSimultaneousRebalance = 1,
-      rebalanceThreshold = RebalanceThreshold,
+      rebalanceThresholdPercent = RebalanceThresholdPercent,
       cleanupPeriod = CleanupPeriod,
       metricRegistry = metricRegistry)(proxyProps = Props(new TestProxy))
 
@@ -264,13 +324,13 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
       shardAllocations,
       rebalanceInProgress = Set.empty[ShardId]).futureValue
 
-    result5 shouldBe Set(entityId3)
+    result5 shouldBe Set(entityId4)
   }
 
   abstract class Scope extends ActorScope with DefaultTimeout {
 
     val MaxSimultaneousRebalance: Int = 10
-    val RebalanceThreshold: Int = 1000
+    val RebalanceThresholdPercent: Int = 30
     val CleanupPeriod: FiniteDuration = 10.minutes
 
     AdaptiveAllocationStrategy.counters.clear()
@@ -279,11 +339,11 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
 
     implicit val node = Cluster(system)
 
-    val typeName = "typeName"
+    val TypeName = "typeName"
 
     val selfAddress = node.selfAddress.toString
 
-    def entityKey(entityId: String) = AdaptiveAllocationStrategy.genEntityKey(typeName, entityId)
+    def entityKey(entityId: String) = AdaptiveAllocationStrategy.genEntityKey(TypeName, entityId)
     def counterKey(entityId: String, address: String = selfAddress) =
       AdaptiveAllocationStrategy.genCounterKey(entityKey(entityId), address)
 
@@ -321,9 +381,9 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     val counterKeyHome1 = PNCounterKey(counterKey(entityId1))
     val counterKeyNonHome11 = PNCounterKey(counterKey(entityId1, anotherAddress1))
     val counterKeyNonHome12 = PNCounterKey(counterKey(entityId1, anotherAddress2))
-    val counterHome1 = 100
-    val counterNonHome11 = 500
-    val counterNonHome12 = 100500
+    val counterHome1 = 700
+    val counterNonHome11 = 100
+    val counterNonHome12 = 500
 
     // clear
     val entityId2 = "2"
@@ -331,19 +391,19 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     val counterKeyHome2 = PNCounterKey(counterKey(entityId2, anotherAddress1))
     val counterKeyNonHome21 = PNCounterKey(counterKey(entityId2))
     val counterKeyNonHome22 = PNCounterKey(counterKey(entityId2, anotherAddress2))
-    val counterHome2 = 100500
+    val counterHome2 = 900
     val counterNonHome21 = 100
-    val counterNonHome22 = 500
+    val counterNonHome22 = 200
 
-    // rebalance
+    // no action (threshold < 30%)
     val entityId3 = "3"
     val entityKeyStr3 = entityKey(entityId3)
     val counterKeyHome3 = PNCounterKey(counterKey(entityId3))
     val counterKeyNonHome31 = PNCounterKey(counterKey(entityId3, anotherAddress1))
     val counterKeyNonHome32 = PNCounterKey(counterKey(entityId3, anotherAddress2))
-    val counterHome3 = 500
-    val counterNonHome31 = 100
-    val counterNonHome32 = 100500
+    val counterHome3 = 700
+    val counterNonHome31 = 200
+    val counterNonHome32 = 300
 
     // rebalance and clear
     val entityId4 = "4"
@@ -351,9 +411,9 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     val counterKeyHome4 = PNCounterKey(counterKey(entityId4, anotherAddress2))
     val counterKeyNonHome41 = PNCounterKey(counterKey(entityId4, anotherAddress1))
     val counterKeyNonHome42 = PNCounterKey(counterKey(entityId4))
-    val counterHome4 = 100
-    val counterNonHome41 = 500
-    val counterNonHome42 = 100500
+    val counterHome4 = 700
+    val counterNonHome41 = 100
+    val counterNonHome42 = 500
 
     val map = ORMultiMap.empty[String] +
       (entityKeyStr1 -> Set(counterKeyNonHome11._id, counterKeyHome1._id, counterKeyNonHome12._id)) +
@@ -375,9 +435,9 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     when(metricRegistry.meter(MM.anyString())) thenReturn mock[Meter]
 
     val strategy = AdaptiveAllocationStrategy(
-      typeName = typeName,
+      typeName = TypeName,
       maxSimultaneousRebalance = MaxSimultaneousRebalance,
-      rebalanceThreshold = RebalanceThreshold,
+      rebalanceThresholdPercent = RebalanceThresholdPercent,
       cleanupPeriod = CleanupPeriod,
       metricRegistry = metricRegistry)(proxyProps = Props(new TestProxy))
 
