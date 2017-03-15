@@ -3,9 +3,10 @@ package com.evolutiongaming.cluster
 import akka.actor.{Actor, ActorSystem, Address, Props}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.MemberRemoved
-import com.evolutiongaming.util.ConfigHelpers._
+import com.evolutiongaming.util.ConfigHelper._
 import com.typesafe.config.Config
 
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Await, Future, Promise}
 import scala.util.Try
 
@@ -23,8 +24,8 @@ object LeaveCluster {
     val system = cluster.system
     import system.dispatcher
 
-    val gracePeriod = config duration "grace-period"
-    val timeout = config duration "timeout"
+    val gracePeriod = config get[FiniteDuration] "grace-period"
+    val timeout = config get[FiniteDuration] "timeout"
 
     val promise = Promise[Unit]()
     val actor = system actorOf Props(new AwaitMemberRemoved(promise, cluster.selfAddress))
