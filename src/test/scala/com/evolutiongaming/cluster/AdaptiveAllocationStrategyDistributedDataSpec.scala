@@ -432,7 +432,8 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
       maxSimultaneousRebalance = MaxSimultaneousRebalance,
       rebalanceThresholdPercent = RebalanceThresholdPercent,
       cleanupPeriod = CleanupPeriod,
-      metricRegistry = metricRegistry)(proxyProps = Props(new TestProxy))
+      metricRegistry = metricRegistry,
+      CountControl.Increment)(proxyProps = Props(new TestProxy))
 
     expectMsgPF() {
       case Subscribe(EntityToNodeCountersKey, _) =>

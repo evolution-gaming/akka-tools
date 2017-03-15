@@ -39,7 +39,8 @@ class AdaptiveAllocationStrategy(
   maxSimultaneousRebalance: Int,
   rebalanceThresholdPercent: Int,
   cleanupPeriod: FiniteDuration,
-  metricRegistry: MetricRegistry)
+  metricRegistry: MetricRegistry,
+  countControl: CountControl.Type)
   extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import AdaptiveAllocationStrategy._
@@ -54,15 +55,12 @@ class AdaptiveAllocationStrategy(
   /** Should be executed on all nodes, incrementing counters for the local node */
   override def extractShardId(numberOfShards: Int): ShardRegion.ExtractShardId = {
     case x: ClusterMsg =>
-      if (!x.isInstanceOf[PersistenceQuery]) {
-        x match {
-          case cc: CountControl if cc.doNotCount =>
-          case _                                 =>
-            increment(typeName, x.id)
-            metricRegistry.meter(s"persistence.$typeName.sender.${ x.id }.$selfHost").mark()
-        }
-        metricRegistry.meter(s"persistence.$typeName.command.${ x.id }.${x.getClass.getSimpleName}.$selfHost").mark()
+      val weight = countControl(x)
+      if (weight > 0) {
+        increase(typeName, x.id, weight)
+        metricRegistry.meter(s"persistence.$typeName.sender.${ x.id }.$selfHost").mark()
       }
+      metricRegistry.meter(s"persistence.$typeName.command.${ x.id }.${ x.getClass.getSimpleName }.$selfHost").mark()
       x.id
   }
 
@@ -211,7 +209,8 @@ object AdaptiveAllocationStrategy {
     maxSimultaneousRebalance: Int,
     rebalanceThresholdPercent: Int,
     cleanupPeriod: FiniteDuration,
-    metricRegistry: MetricRegistry)
+    metricRegistry: MetricRegistry,
+    countControl: CountControl.Type = CountControl.Empty)
     (proxyProps: Props = Props[AdaptiveAllocationStrategyDistributedDataProxy])
     (implicit system: ActorSystem): AdaptiveAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
@@ -224,7 +223,8 @@ object AdaptiveAllocationStrategy {
       maxSimultaneousRebalance = maxSimultaneousRebalance,
       rebalanceThresholdPercent = rebalanceThresholdPercent,
       cleanupPeriod = cleanupPeriod,
-      metricRegistry: MetricRegistry)
+      metricRegistry = metricRegistry,
+      countControl)
   }
 
   def genEntityKey(typeName: String, id: ShardId): String =
@@ -244,14 +244,14 @@ object AdaptiveAllocationStrategy {
   @volatile
   private[cluster] var entityToNodeCounters: Map[String, Set[String]] = Map.empty
 
-  private[cluster] def increment(typeName: String, id: ShardId): Unit =
-    proxy foreach (_ ! Increment(typeName, id))
+  private[cluster] def increase(typeName: String, id: ShardId, weight: CountControl.Weight): Unit =
+    proxy foreach (_ ! Increase(typeName, id, weight))
 
   private[cluster] def clear(typeName: String, id: ShardId): Unit =
     proxy foreach (_ ! Clear(typeName, id))
 
   case class ValueData(value: BigInt, cleared: Long)
 
-  case class Increment(typeName: String, id: ShardId)
+  case class Increase(typeName: String, id: ShardId, weight: CountControl.Weight)
   case class Clear(typeName: String, id: ShardId)
 }

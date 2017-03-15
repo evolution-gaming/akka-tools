@@ -37,12 +37,12 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
     replicator ! Update(EntityToNodeCountersKey, ORMultiMap.empty[String], WriteLocal)(_ addBinding (entityKey, counterKey))
 
   def receive = {
-    case Increment(typeName, id) =>
+    case Increase(typeName, id, weight) =>
       val entityKey = genEntityKey(typeName, id)
       val counterKey = genCounterKey(entityKey, selfAddress.toString)
       counters get counterKey match {
         case None =>
-          counters += (counterKey -> ValueData(1, Platform.currentTime))
+          counters += (counterKey -> ValueData(weight, Platform.currentTime))
           replicator ! Subscribe(PNCounterKey(counterKey), self)
         case _    =>
       }
