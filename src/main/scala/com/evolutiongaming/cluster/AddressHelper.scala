@@ -10,8 +10,8 @@ class AddressHelper(system: ExtendedActorSystem) extends Extension {
     val (host, port) = {
       val conf = system.settings.config.get[Config]("akka.remote.netty.tcp")
       val result = for {
-        host <- conf get[Option[String]] "hostname"
-        port <- conf get[Option[Int]] "port"
+        host <- conf.get[Option[String]]("hostname")
+        port <- conf.get[Option[Int]]("port")
       } yield (host, port)
 
       result getOrElse ("127.0.0.1" -> 2552)
