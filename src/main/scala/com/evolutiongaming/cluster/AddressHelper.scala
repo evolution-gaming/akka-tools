@@ -8,7 +8,7 @@ class AddressHelper(system: ExtendedActorSystem) extends Extension {
 
   lazy val tcpAddress: Address = {
     val (host, port) = {
-      val conf = system.settings.config get[Config] "akka.remote.netty.tcp"
+      val conf = system.settings.config.get[Config]("akka.remote.netty.tcp")
       val result = for {
         host <- conf get[Option[String]] "hostname"
         port <- conf get[Option[Int]] "port"
