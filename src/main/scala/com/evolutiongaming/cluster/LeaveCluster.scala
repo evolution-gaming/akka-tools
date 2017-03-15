@@ -24,8 +24,8 @@ object LeaveCluster {
     val system = cluster.system
     import system.dispatcher
 
-    val gracePeriod = config get[FiniteDuration] "grace-period"
-    val timeout = config get[FiniteDuration] "timeout"
+    val gracePeriod = config.get[FiniteDuration]("grace-period")
+    val timeout = config.get[FiniteDuration]("timeout")
 
     val promise = Promise[Unit]()
     val actor = system actorOf Props(new AwaitMemberRemoved(promise, cluster.selfAddress))
