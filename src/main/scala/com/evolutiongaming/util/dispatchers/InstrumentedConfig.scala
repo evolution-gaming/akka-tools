@@ -17,7 +17,7 @@ object InstrumentedConfig {
       id = config.getString("id"),
       mdc = config.getOpt[Boolean]("mdc") getOrElse false,
       metrics = config.getOpt[Boolean]("metrics") getOrElse true,
-      executionTracker = config getOpt[Config] "execution-tracker" flatMap ExecutionTracker.opt)
+      executionTracker = config.getOpt[Config]("execution-tracker") flatMap ExecutionTracker.opt)
   }
 
   case class ExecutionTracker(hangingThreshold: FiniteDuration = 10.seconds)
