@@ -58,9 +58,9 @@ class AdaptiveAllocationStrategy(
       val weight = countControl(x)
       if (weight > 0) {
         increase(typeName, x.id, weight)
-        metricRegistry.meter(s"persistence.$typeName.sender.${ x.id }.$selfHost").mark()
+        metricRegistry.meter(s"sharding.$typeName.sender.${ x.id }.$selfHost").mark(weight.toLong)
       }
-      metricRegistry.meter(s"persistence.$typeName.command.${ x.id }.${ x.getClass.getSimpleName }.$selfHost").mark()
+      metricRegistry.meter(s"sharding.$typeName.command.${ x.id }.${ x.getClass.getSimpleName }.$selfHost").mark()
       x.id
   }
 
@@ -177,7 +177,7 @@ class AdaptiveAllocationStrategy(
           val rebalanceThreshold =
             (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) + 10
           if (maxNonHomeValue > correctedHomeValue + rebalanceThreshold) {
-            metricRegistry.meter(s"persistence.$typeName.rebalance.$shard").mark()
+            metricRegistry.meter(s"sharding.$typeName.rebalance.$shard").mark()
             Some(shard)
           } else None
         }

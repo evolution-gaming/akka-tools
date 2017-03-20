@@ -42,11 +42,11 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
       val counterKey = genCounterKey(entityKey, selfAddress.toString)
       counters get counterKey match {
         case None =>
-          counters += (counterKey -> ValueData(weight, Platform.currentTime))
+          counters += (counterKey -> ValueData(weight.toLong, Platform.currentTime)) // here the value is not cumulative, just eventually consistent
           replicator ! Subscribe(PNCounterKey(counterKey), self)
         case _    =>
       }
-      replicator ! Update(PNCounterKey(counterKey), PNCounter.empty, WriteLocal)(_ + 1)
+      replicator ! Update(PNCounterKey(counterKey), PNCounter.empty, WriteLocal)(_ + weight.toLong)
 
       entityToNodeCounters get entityKey match {
         case Some(counterKeys) if counterKeys contains counterKey =>
