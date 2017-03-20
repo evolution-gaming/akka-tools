@@ -6,7 +6,7 @@ import com.codahale.metrics.MetricRegistry
 import com.evolutiongaming.util.ConfigHelper._
 import com.typesafe.config.Config
 
-/** Metered clone of [[akka.dispatch.PinnedDispatcherConfigurator]]. */
+/** Instrumented clone of [[akka.dispatch.PinnedDispatcherConfigurator]]. */
 abstract class AbstractInstrumentedPinned(config: Config, prerequisites: DispatcherPrerequisites)
   extends MessageDispatcherConfigurator(config, prerequisites) {
 
