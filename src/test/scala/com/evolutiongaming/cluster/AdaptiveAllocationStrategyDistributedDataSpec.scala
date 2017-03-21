@@ -45,6 +45,8 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
   with Eventually
   with PatienceConfiguration {
 
+  override implicit val patienceConfig = PatienceConfig(5.seconds, 500.millis)
+
   override def config = super.config withValue
     ("akka.actor.provider", ConfigValueFactory fromAnyRef "akka.cluster.ClusterActorRefProvider")
 
