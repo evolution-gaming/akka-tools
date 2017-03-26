@@ -58,10 +58,9 @@ class FutureSequentialForKeySpec extends WordSpec with ActorSpec with Matchers w
         for {key <- keys} yield futureSequentialForKey(key) {key}
       }
 
-      val timeout = 3.seconds
-      failAfter(timeout) {
+      failAfter(timeout.duration) {
         for {key <- keys} yield futureSequentialForKey(key) {key}
-        val result = Await.result(Future.sequence(futures), timeout * 2)
+        val result = Await.result(Future.sequence(futures), timeout.duration * 2)
         result.toSet shouldEqual keys.toSet
       }
     }
