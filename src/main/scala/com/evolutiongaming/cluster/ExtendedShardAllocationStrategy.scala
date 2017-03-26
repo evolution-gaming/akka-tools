@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.slf4j.LazyLogging
 trait ExtendedShardAllocationStrategy extends ShardAllocationStrategy with LazyLogging {
 
   def extractShardId(numberOfShards: Int): ShardRegion.ExtractShardId = {
-    case x: ClusterMsg =>
+    case x: ShardedMsg =>
       val id = x.id
       val shardId = math.abs(id.hashCode % numberOfShards).toString
       shardId

@@ -58,7 +58,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     val extractShardId = strategy.extractShardId(0)
 
     // increment
-    extractShardId(ClusterMsg(entityId, new Serializable {})) shouldBe entityId
+    extractShardId(ShardedMsg(entityId, new Serializable {})) shouldBe entityId
 
     expectMsgPF() {
       case Subscribe(`expectedCounterKey`, _) =>

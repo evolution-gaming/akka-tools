@@ -43,7 +43,7 @@ class DualAllocationStrategy(
     }
 
   override def extractShardId(numberOfShards: Int): ExtractShardId = {
-    case x: ClusterMsg =>
+    case x: ShardedMsg =>
       if (additionalShardIds contains x.id)
         (additionalAllocationStrategy extractShardId numberOfShards) apply x
       else

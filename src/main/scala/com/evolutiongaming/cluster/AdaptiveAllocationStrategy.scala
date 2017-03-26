@@ -54,7 +54,7 @@ class AdaptiveAllocationStrategy(
 
   /** Should be executed on all nodes, incrementing counters for the local node */
   override def extractShardId(numberOfShards: Int): ShardRegion.ExtractShardId = {
-    case x: ClusterMsg =>
+    case x: ShardedMsg =>
       val weight = countControl(x)
       if (weight > 0) {
         increase(typeName, x.id, weight)
