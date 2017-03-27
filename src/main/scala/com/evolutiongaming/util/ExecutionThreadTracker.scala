@@ -5,7 +5,7 @@ import java.util.concurrent.Executors
 
 import com.codahale.metrics.MetricRegistry
 import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.compat.Platform
 import scala.concurrent.duration.FiniteDuration

@@ -11,6 +11,6 @@ object OverrideScalaRunnable {
   }
 
   class OverrideOnComplete(self: Runnable, r: Run) extends OnCompleteRunnable with Runnable {
-    def run(): Unit = r(self.run)
+    def run(): Unit = r(() => self.run())
   }
 }

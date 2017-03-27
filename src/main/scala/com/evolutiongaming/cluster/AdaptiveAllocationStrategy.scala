@@ -20,7 +20,7 @@ import akka.cluster.Cluster
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion._
 import com.codahale.metrics.MetricRegistry
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.{immutable, mutable}

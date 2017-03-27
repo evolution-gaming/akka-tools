@@ -2,7 +2,7 @@ package com.evolutiongaming.cluster
 
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 trait ExtendedShardAllocationStrategy extends ShardAllocationStrategy with LazyLogging {
 

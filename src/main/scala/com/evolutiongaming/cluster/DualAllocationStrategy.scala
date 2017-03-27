@@ -17,7 +17,7 @@ package com.evolutiongaming.cluster
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.cluster.sharding.ShardRegion.{ExtractShardId, ShardId}
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
 import scala.concurrent.Future

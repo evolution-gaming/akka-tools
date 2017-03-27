@@ -12,7 +12,9 @@ organizationHomepage := Some(url("http://evolutiongaming.com"))
 
 bintrayOrganization := Some("evolutiongaming")
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.1"
+
+crossScalaVersions := Seq("2.12.1", "2.11.8")
 
 scalacOptions ++= Seq(
   "-encoding", "UTF-8",
@@ -29,23 +31,23 @@ scalacOptions ++= Seq(
 
 scalacOptions in (Compile,doc) ++= Seq("-no-link-warnings")
 
-val AkkaVersion = "2.4.12"
+val AkkaVersion = "2.4.17"
 
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies ++= Seq(
-  "com.evolutiongaming" %% "scala-tools" % "0.6",
-  "com.evolutiongaming" %% "metric-tools" % "0.1",
-  "io.dropwizard.metrics" % "metrics-core" % "3.1.2",
+  "com.evolutiongaming" %% "scala-tools" % "0.7",
+  "com.evolutiongaming" %% "metric-tools" % "0.2",
+  "io.dropwizard.metrics" % "metrics-core" % "3.2.1",
   "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster-tools" % AkkaVersion,
   "com.typesafe.akka" %% "akka-distributed-data-experimental" % AkkaVersion,
-  "com.google.guava" % "guava" % "19.0",
-  "com.google.code.findbugs" % "jsr305" % "3.0.0",
+  "com.google.guava" % "guava" % "21.0",
+  "com.google.code.findbugs" % "jsr305" % "3.0.1",
   "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
-  "org.scalatest" %% "scalatest" % "3.0.0" % Test,
+  "org.scalatest" %% "scalatest" % "3.0.1" % Test,
   "org.mockito" % "mockito-core" % "1.9.5" % Test
 
 )

@@ -41,7 +41,7 @@ class Instrumented(config: InstrumentedConfig, registry: MetricRegistry) {
     }
 
     class Default(self: Runnable, r: Run) extends Runnable {
-      def run(): Unit = r(self.run)
+      def run(): Unit = r(() => self.run())
     }
   }
 }
