@@ -23,11 +23,11 @@ object ShardedRef {
 
   def apply[Id, In <: Serializable, Out](
     ref: ActorRef,
-    toShardId: Id => ShardId = (id: Id) => id.toString)
-    (implicit tag: ClassTag[Out]): ShardedRef[Id, In, Out] = new Impl(ref, toShardId)
+    idToStr: Id => String = (id: Id) => id.toString)
+    (implicit tag: ClassTag[Out]): ShardedRef[Id, In, Out] = new Impl(ref, idToStr)
 
 
-  abstract class SafeImpl[Id, In <: Serializable, Out](implicit tag: ClassTag[Out])
+  abstract class AbstractShardedRef[Id, In <: Serializable, Out](implicit tag: ClassTag[Out])
     extends ShardedRef[Id, In, Out] {
 
     def tell(id: Id, in: In, sender: ActorRef = ActorRef.noSender): Unit = {
@@ -42,8 +42,8 @@ object ShardedRef {
 
   class Impl[Id, In <: Serializable, Out](
     ref: ActorRef,
-    toShardId: Id => ShardId = (id: Id) => id.toString)
-    (implicit tag: ClassTag[Out]) extends SafeImpl[Id, In, Out] {
+    idToStr: Id => ShardId = (id: Id) => id.toString)
+    (implicit tag: ClassTag[Out]) extends AbstractShardedRef[Id, In, Out] {
 
     def askUnsafe(id: Id, in: Serializable)(implicit timeout: FiniteDuration): Future[Any] = {
       val shardedMsg = toShardedMsg(id, in)
@@ -55,14 +55,14 @@ object ShardedRef {
       ref.tell(shardedMsg, sender)
     }
 
-    def toShardedMsg(id: Id, in: Serializable) = ShardedMsg(toShardId(id), in)
+    def toShardedMsg(id: Id, in: Serializable) = ShardedMsg(idToStr(id), in)
 
     override def toString = s"ShardedRef.Impl($ref)"
   }
 
 
   class Proxy[Id, In <: Serializable, Out](ref: ActorRef)(implicit tag: ClassTag[Out])
-    extends SafeImpl[Id, In, Out] {
+    extends AbstractShardedRef[Id, In, Out] {
 
     def tellUnsafe(id: Id, in: Serializable, sender: ActorRef = ActorRef.noSender): Unit = {
       ref.tell(in, sender)
