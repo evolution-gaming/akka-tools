@@ -99,6 +99,10 @@ object ShardedSingletonRef {
     new Impl(id, ref)
   }
 
+  def apply[Id, In <: Serializable, Out](id: Id, ref: ActorRef): ShardedSingletonRef[In, Out] = {
+    val shardedRef = ShardedRef[Id, In, Out](ref)
+    ShardedSingletonRef(id, shardedRef)
+  }
 
   class Impl[Id, In <: Serializable, Out](id: Id, ref: ShardedRef[Id, In, Out]) extends ShardedSingletonRef[In, Out] {
 
