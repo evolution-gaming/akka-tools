@@ -44,7 +44,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-cluster-sharding" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster-tools" % AkkaVersion,
   "com.typesafe.akka" %% "akka-distributed-data-experimental" % AkkaVersion,
-  "com.google.guava" % "guava" % "21.0",
+  "com.google.guava" % "guava" % "19.0",
   "com.google.code.findbugs" % "jsr305" % "3.0.1",
   "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
   "org.scalatest" %% "scalatest" % "3.0.1" % Test,
