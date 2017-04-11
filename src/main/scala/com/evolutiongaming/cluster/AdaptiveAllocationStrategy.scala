@@ -58,9 +58,9 @@ class AdaptiveAllocationStrategy(
       val weight = countControl(x)
       if (weight > 0) {
         increase(typeName, x.id, weight)
-        metricRegistry.meter(s"sharding.$typeName.sender.${ x.id }.$selfHost").mark(weight.toLong)
+        if (logger.underlying.isDebugEnabled)
+          metricRegistry.meter(s"sharding.$typeName.sender.${ x.id }.$selfHost").mark(weight.toLong)
       }
-      metricRegistry.meter(s"sharding.$typeName.command.${ x.id }.${ x.getClass.getSimpleName }.$selfHost").mark()
       x.id
   }
 
@@ -123,11 +123,10 @@ class AdaptiveAllocationStrategy(
 
     clear(typeName, shardId)
 
-    logger.debug(
-      s"AllocateShard $typeName\n\t" +
-        s"shardId:\t$shardId\n\t" +
-        s"on node:\t$toNode\n\t" +
-        s"requester:\t$requester\n\t")
+    logger debug s"AllocateShard $typeName\n\t" +
+      s"shardId:\t$shardId\n\t" +
+      s"on node:\t$toNode\n\t" +
+      s"requester:\t$requester\n\t"
     Future successful toNode
   }
 
@@ -182,7 +181,7 @@ class AdaptiveAllocationStrategy(
           logger debug s"Shard:$shard, homeValue:$homeValue, correctedHomeValue:$correctedHomeValue, maxNonHomeValue:$maxNonHomeValue, nonHomeValues:$nonHomeValues, nonHomeValuesSum:$nonHomeValuesSum, rebalanceThreshold:$rebalanceThreshold"
 
           if (maxNonHomeValue > correctedHomeValue + rebalanceThreshold) {
-            metricRegistry.meter(s"sharding.$typeName.rebalance.$shard").mark()
+            if (logger.underlying.isDebugEnabled) metricRegistry.meter(s"sharding.$typeName.rebalance.$shard").mark()
             Some(shard)
           } else None
         }
@@ -192,15 +191,14 @@ class AdaptiveAllocationStrategy(
     val result = limitRebalance(shardsToRebalance.toSet)
 
     for (id <- shardsToClear -- result) {
-      logger.debug(s"Shard $typeName#$id counter cleanup")
+      logger debug s"Shard $typeName#$id counter cleanup"
       clear(typeName, id)
     }
 
-    if (result.nonEmpty) logger.info(
-      s"Rebalance $typeName\n\t" +
-        s"current:${currentShardAllocations.mkString("\n\t\t", "\n\t\t", "")}\n\t" +
-        s"rebalanceInProgress:\t$rebalanceInProgress\n\t" +
-        s"result:\t$result")
+    if (result.nonEmpty) logger info s"Rebalance $typeName\n\t" +
+      s"current:${ currentShardAllocations.mkString("\n\t\t", "\n\t\t", "") }\n\t" +
+      s"rebalanceInProgress:\t$rebalanceInProgress\n\t" +
+      s"result:\t$result"
 
     result
   }

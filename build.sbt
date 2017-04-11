@@ -16,6 +16,8 @@ scalaVersion := "2.12.1"
 
 crossScalaVersions := Seq("2.12.1", "2.11.8")
 
+releaseCrossBuild := true
+
 scalacOptions ++= Seq(
   "-encoding", "UTF-8",
   "-feature",
