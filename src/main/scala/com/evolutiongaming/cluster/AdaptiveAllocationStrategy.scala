@@ -89,6 +89,8 @@ class AdaptiveAllocationStrategy(
           v <- counters get counterKey
         } yield (counterKey, v.value)
 
+        clear(typeName, shardId)
+
         val maxNode = maxOption(nodeCounters)
 
         maxNode match {
@@ -120,8 +122,6 @@ class AdaptiveAllocationStrategy(
             }
         }
     }
-
-    clear(typeName, shardId)
 
     logger debug s"AllocateShard $typeName\n\t" +
       s"shardId:\t$shardId\n\t" +
@@ -178,7 +178,13 @@ class AdaptiveAllocationStrategy(
           val rebalanceThreshold =
             (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) + 10
 
-          logger debug s"Shard:$shard, homeValue:$homeValue, correctedHomeValue:$correctedHomeValue, maxNonHomeValue:$maxNonHomeValue, nonHomeValues:$nonHomeValues, nonHomeValuesSum:$nonHomeValuesSum, rebalanceThreshold:$rebalanceThreshold"
+          logger debug s"Shard:$shard, " +
+            s"homeValue:$homeValue, " +
+            s"correctedHomeValue:$correctedHomeValue, " +
+            s"maxNonHomeValue:$maxNonHomeValue, " +
+            s"nonHomeValues:$nonHomeValues, " +
+            s"nonHomeValuesSum:$nonHomeValuesSum, " +
+            s"rebalanceThreshold:$rebalanceThreshold"
 
           if (maxNonHomeValue > correctedHomeValue + rebalanceThreshold) {
             if (logger.underlying.isDebugEnabled) metricRegistry.meter(s"sharding.$typeName.rebalance.$shard").mark()
