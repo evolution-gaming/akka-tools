@@ -116,7 +116,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
 
     AdaptiveAllocationStrategy.entityToNodeCounters should have size 0
 
-    override val map = ORMultiMap.empty[String] + (expectedEntityKeyStr -> Set(expectedCounterKey._id))
+    override val map = ORMultiMap.empty[String, String] + (expectedEntityKeyStr -> Set(expectedCounterKey._id))
 
     proxy ! Changed(EntityToNodeCountersKey)(map)
 
@@ -410,7 +410,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     val counterNonHome41 = 100
     val counterNonHome42 = 500
 
-    val map = ORMultiMap.empty[String] +
+    val map = ORMultiMap.empty[String, String] +
       (entityKeyStr1 -> Set(counterKeyNonHome11._id, counterKeyHome1._id, counterKeyNonHome12._id)) +
       (entityKeyStr2 -> Set(counterKeyNonHome21._id, counterKeyHome2._id, counterKeyNonHome22._id)) +
       (entityKeyStr3 -> Set(counterKeyHome3._id, counterKeyNonHome31._id, counterKeyNonHome32._id)) +

@@ -10,7 +10,6 @@ import com.github.t3hnar.scalax._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.language.reflectiveCalls
 import scala.util.control.NoStackTrace
 
 trait RecoveryBreaker {

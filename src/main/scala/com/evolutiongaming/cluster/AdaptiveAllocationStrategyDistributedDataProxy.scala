@@ -33,8 +33,10 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
 
   replicator ! Subscribe(EntityToNodeCountersKey, self)
 
-  def sendBindingUpdate(entityKey: String, counterKey: String): Unit =
-    replicator ! Update(EntityToNodeCountersKey, ORMultiMap.empty[String], WriteLocal)(_ addBinding (entityKey, counterKey))
+  def sendBindingUpdate(entityKey: String, counterKey: String): Unit = {
+    val empty = ORMultiMap.empty[String, String]
+    replicator ! Update(EntityToNodeCountersKey, empty, WriteLocal)(_ addBinding(entityKey, counterKey))
+  }
 
   def receive = {
     case Increase(typeName, id, weight) =>
@@ -109,5 +111,6 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
 
 object AdaptiveAllocationStrategyDistributedDataProxy {
   // DData key of the entityToNodeCounterIds map
-  private[cluster] val EntityToNodeCountersKey = ORMultiMapKey[String]("EntityToNodeCounters")
+  private[cluster] val EntityToNodeCountersKey: ORMultiMapKey[String, String] =
+    ORMultiMapKey[String, String]("EntityToNodeCounters")
 }

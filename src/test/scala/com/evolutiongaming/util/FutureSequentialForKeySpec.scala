@@ -1,6 +1,6 @@
 package com.evolutiongaming.util
 
-import org.scalatest.concurrent.{ScalaFutures, TimeLimits, Timeouts}
+import org.scalatest.concurrent.{ScalaFutures, TimeLimits}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.duration._
