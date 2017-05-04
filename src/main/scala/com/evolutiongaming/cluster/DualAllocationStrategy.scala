@@ -25,9 +25,8 @@ import scala.concurrent.Future
 class DualAllocationStrategy(
   baseAllocationStrategy: ExtendedShardAllocationStrategy,
   additionalAllocationStrategy: ExtendedShardAllocationStrategy,
-  readSettings: () => Option[String],
-  debugMode: Boolean = false)(implicit system: ActorSystem) extends ExtendedShardAllocationStrategy
-  with LazyLogging {
+  readSettings: () => Option[String])
+  (implicit system: ActorSystem) extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import system.dispatcher
 
@@ -56,7 +55,7 @@ class DualAllocationStrategy(
     shardId: ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = {
 
-    if (debugMode) reReadSettings()
+    reReadSettings()
 
     if (additionalShardIds contains shardId)
       additionalAllocationStrategy.allocateShard(requester, shardId, currentShardAllocations)
@@ -68,7 +67,7 @@ class DualAllocationStrategy(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]],
     rebalanceInProgress: Set[ShardId]): Future[Set[ShardId]] = {
 
-    if (debugMode) reReadSettings()
+    reReadSettings()
 
     val additionalStrategyAllocation = currentShardAllocations map {
       case (ref, seq) => (ref, seq filter additionalShardIds.contains)
