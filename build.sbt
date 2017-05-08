@@ -14,7 +14,7 @@ bintrayOrganization := Some("evolutiongaming")
 
 scalaVersion := "2.12.2"
 
-crossScalaVersions := Seq("2.12.2", "2.11.8")
+crossScalaVersions := Seq("2.12.2", "2.11.11")
 
 releaseCrossBuild := true
 
@@ -33,13 +33,13 @@ scalacOptions ++= Seq(
 
 scalacOptions in (Compile,doc) ++= Seq("-no-link-warnings")
 
-val AkkaVersion = "2.5.0"
+val AkkaVersion = "2.5.1"
 
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies ++= Seq(
-  "com.evolutiongaming" %% "scala-tools" % "1.1",
-  "com.evolutiongaming" %% "metric-tools" % "0.2",
+  "com.evolutiongaming" %% "scala-tools" % "1.3",
+  "com.evolutiongaming" %% "metric-tools" % "0.3",
   "io.dropwizard.metrics" % "metrics-core" % "3.2.1",
   "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster" % AkkaVersion,
