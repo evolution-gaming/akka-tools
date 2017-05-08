@@ -39,7 +39,7 @@ resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies ++= Seq(
   "com.evolutiongaming" %% "scala-tools" % "1.3",
-  "com.evolutiongaming" %% "metric-tools" % "0.3",
+  "com.evolutiongaming" %% "metric-tools" % "0.4",
   "io.dropwizard.metrics" % "metrics-core" % "3.2.1",
   "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster" % AkkaVersion,
