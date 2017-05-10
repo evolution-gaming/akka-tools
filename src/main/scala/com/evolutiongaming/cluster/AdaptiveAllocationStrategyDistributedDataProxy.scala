@@ -15,7 +15,7 @@
  */
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, ActorLogging, Actor}
+import akka.actor.{Actor, ActorLogging, ActorRef, ExtendedActorSystem, Extension, ExtensionId, Props}
 import akka.cluster.Cluster
 import akka.cluster.ddata._
 import akka.cluster.ddata.Replicator._
@@ -28,7 +28,7 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
   import AdaptiveAllocationStrategyDistributedDataProxy._
 
   implicit val node = Cluster(context.system)
-  val selfAddress = node.selfAddress
+  private val selfAddress = node.selfAddress.toString
   lazy val replicator: ActorRef = DistributedData(context.system).replicator
 
   replicator ! Subscribe(EntityToNodeCountersKey, self)
@@ -38,43 +38,43 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
     replicator ! Update(EntityToNodeCountersKey, empty, WriteLocal)(_ addBinding(entityKey, counterKey))
   }
 
-  def receive = {
+  def receive: Receive = {
     case Increase(typeName, id, weight) =>
-      val entityKey = genEntityKey(typeName, id)
-      val counterKey = genCounterKey(entityKey, selfAddress.toString)
+      val entityKey = EntityKey(typeName, id)
+      val counterKey = CounterKey(entityKey, selfAddress)
       counters get counterKey match {
         case None =>
           counters += (counterKey -> ValueData(weight.toLong, Platform.currentTime)) // here the value is not cumulative, just eventually consistent
-          replicator ! Subscribe(PNCounterKey(counterKey), self)
+          replicator ! Subscribe(PNCounterKey(counterKey.toString), self)
         case _    =>
       }
-      replicator ! Update(PNCounterKey(counterKey), PNCounter.empty, WriteLocal)(_ + weight.toLong)
+      replicator ! Update(PNCounterKey(counterKey.toString), PNCounter.empty, WriteLocal)(_ + weight.toLong)
 
       entityToNodeCounters get entityKey match {
         case Some(counterKeys) if counterKeys contains counterKey =>
 
-        case Some(counterKeys)                                        =>
+        case Some(counterKeys)                                    =>
           entityToNodeCounters = entityToNodeCounters + (entityKey -> (counterKeys + counterKey))
-          sendBindingUpdate(entityKey, counterKey)
+          sendBindingUpdate(entityKey.toString, counterKey.toString)
 
-        case None                                                     =>
+        case None                                                 =>
           entityToNodeCounters = entityToNodeCounters + (entityKey -> Set(counterKey))
-          sendBindingUpdate(entityKey, counterKey)
+          sendBindingUpdate(entityKey.toString, counterKey.toString)
       }
 
     case Clear(typeName, id) =>
-      val entityKey = genEntityKey(typeName, id)
+      val entityKey = EntityKey(typeName, id)
       entityToNodeCounters get entityKey match {
         case Some(counterKeys) =>
           for (counterKey <- counterKeys) {
             counters get counterKey match {
               case None    =>
-                replicator ! Subscribe(PNCounterKey(counterKey), self)
+                replicator ! Subscribe(PNCounterKey(counterKey.toString), self)
 
               case Some(v) =>
                 if (v.value.isValidLong) {
                   counters += (counterKey -> ValueData(0, Platform.currentTime))
-                  replicator ! Update(PNCounterKey(counterKey), PNCounter.empty, WriteLocal)(_ - v.value.longValue())
+                  replicator ! Update(PNCounterKey(counterKey.toString), PNCounter.empty, WriteLocal)(_ - v.value.longValue())
                 } else {
                   // probably should never happen
                   log warning s"Can't clear counter for key $counterKey - it's bigger than Long"
@@ -91,25 +91,40 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
       log warning s"Update timeout for key $key"
 
     case c@Changed(key: PNCounterKey) =>
-      val newValue = (c get key).value
-      counters get key._id match {
-        case None           =>
-          counters += (key._id -> ValueData(newValue, Platform.currentTime))
-        case Some(oldValue) =>
-          counters += (key._id -> ValueData(newValue, oldValue.cleared))
+      CounterKey unapply key._id match {
+        case Some(counterKey) =>
+          val newValue = (c get key).value
+          counters get counterKey match {
+            case None           =>
+              counters += (counterKey -> ValueData(newValue, Platform.currentTime))
+            case Some(oldValue) =>
+              counters += (counterKey -> ValueData(newValue, oldValue.cleared))
+          }
+        case None             =>
+          log error s"Wrong CounterKey: ${ key._id }"
       }
 
     case c@Changed(EntityToNodeCountersKey) =>
-      val newData = (c get EntityToNodeCountersKey).entries
+      val newData = (c get EntityToNodeCountersKey).entries flatMap {
+        case (key, values) =>
+          EntityKey unapply key map { entityKey =>
+            entityKey -> (values flatMap { CounterKey.unapply(_) })
+          }
+      }
       val oldCounterKeys = entityToNodeCounters.values.flatten.toSet
       entityToNodeCounters = newData
       val newCounterKeys = newData.values.flatten.toSet
-      val diffKeys = newCounterKeys diff oldCounterKeys
-      for (key <- diffKeys) replicator ! Subscribe(PNCounterKey(key), self)
+      val diffKeys = newCounterKeys -- oldCounterKeys
+      for (key <- diffKeys) replicator ! Subscribe(PNCounterKey(key.toString), self)
   }
 }
 
-object AdaptiveAllocationStrategyDistributedDataProxy {
+class ActorRefExtension(val ref: ActorRef) extends Extension
+
+object AdaptiveAllocationStrategyDistributedDataProxy extends ExtensionId[ActorRefExtension] {
+  override def createExtension(system: ExtendedActorSystem): ActorRefExtension =
+    new ActorRefExtension(system actorOf Props[AdaptiveAllocationStrategyDistributedDataProxy])
+
   // DData key of the entityToNodeCounterIds map
   private[cluster] val EntityToNodeCountersKey: ORMultiMapKey[String, String] =
     ORMultiMapKey[String, String]("EntityToNodeCounters")

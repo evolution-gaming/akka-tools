@@ -16,46 +16,32 @@
 package com.evolutiongaming.cluster
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.cluster.sharding.ShardRegion.{ExtractShardId, ShardId}
+import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
+import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
 import scala.concurrent.Future
 
 class DualAllocationStrategy(
-  baseAllocationStrategy: ExtendedShardAllocationStrategy,
-  additionalAllocationStrategy: ExtendedShardAllocationStrategy,
-  readSettings: () => Option[String])
-  (implicit system: ActorSystem) extends ExtendedShardAllocationStrategy with LazyLogging {
+  baseAllocationStrategy: ShardAllocationStrategy,
+  additionalAllocationStrategy: ShardAllocationStrategy,
+  readSettings: () => Option[Set[ShardRegion.ShardId]])
+  (implicit system: ActorSystem) extends ShardAllocationStrategy with LazyLogging {
 
   import system.dispatcher
 
   @volatile
-  private var additionalShardIds = Set.empty[ShardId]
+  private var additionalShardIds = Set.empty[ShardRegion.ShardId]
 
-  reReadSettings() // also frequent calls of rebalance will cause reReadSettings() often
-
-  private def reReadSettings(): Unit =
-    for {
-      settings <- readSettings()
-    } {
-      additionalShardIds = (settings split "," map (_.trim) filter (_.nonEmpty)).toSet
-    }
-
-  override def extractShardId(numberOfShards: Int): ExtractShardId = {
-    case x: ShardedMsg =>
-      if (additionalShardIds contains x.id)
-        (additionalAllocationStrategy extractShardId numberOfShards) apply x
-      else
-        (baseAllocationStrategy extractShardId numberOfShards) apply x
-  }
+  for {
+    settings <- readSettings()
+  } additionalShardIds = settings
 
   def allocateShard(
     requester: ActorRef,
-    shardId: ShardId,
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = {
-
-    reReadSettings()
+    shardId: ShardRegion.ShardId,
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
     if (additionalShardIds contains shardId)
       additionalAllocationStrategy.allocateShard(requester, shardId, currentShardAllocations)
@@ -64,20 +50,26 @@ class DualAllocationStrategy(
   }
 
   def rebalance(
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]],
-    rebalanceInProgress: Set[ShardId]): Future[Set[ShardId]] = {
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
+    rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
 
-    reReadSettings()
+    for {
+      settings <- readSettings()
+    } additionalShardIds = settings
 
-    val additionalStrategyAllocation = currentShardAllocations map {
-      case (ref, seq) => (ref, seq filter additionalShardIds.contains)
+    val currentShardAllocationsOptimized = currentShardAllocations mapValues (_.toSet)
+
+    val additionalStrategyAllocation = currentShardAllocationsOptimized map {
+      case (ref, shards) => (ref, (shards intersect additionalShardIds).toIndexedSeq)
     }
+
     val additionalStrategyResultFuture =
       additionalAllocationStrategy.rebalance(additionalStrategyAllocation, rebalanceInProgress intersect additionalShardIds)
 
-    val baseStrategyAllocation = currentShardAllocations map {
-      case (ref, seq) => (ref, seq filter (id => !(additionalShardIds contains id)))
+    val baseStrategyAllocation = currentShardAllocationsOptimized map {
+      case (ref, shards) => (ref, (shards -- additionalShardIds).toIndexedSeq)
     }
+
     val baseStrategyResultFuture =
       baseAllocationStrategy.rebalance(baseStrategyAllocation, rebalanceInProgress -- additionalShardIds)
 
@@ -90,8 +82,17 @@ class DualAllocationStrategy(
 
 object DualAllocationStrategy {
   def apply(
-    baseAllocationStrategy: ExtendedShardAllocationStrategy,
-    additionalAllocationStrategy: ExtendedShardAllocationStrategy,
+    baseAllocationStrategy: ShardAllocationStrategy,
+    additionalAllocationStrategy: ShardAllocationStrategy,
     readSettings: () => Option[String])(implicit system: ActorSystem): DualAllocationStrategy =
-    new DualAllocationStrategy(baseAllocationStrategy, additionalAllocationStrategy, readSettings)
+    new DualAllocationStrategy(
+      baseAllocationStrategy,
+      additionalAllocationStrategy,
+      readAndParseSettings(readSettings))
+
+  private def readAndParseSettings(
+    readSettings: () => Option[String]): () => Option[Set[ShardRegion.ShardId]] =
+    () => for {
+      settings <- readSettings()
+    } yield (settings split "," map (_.trim) filter (_.nonEmpty)).toSet
 }

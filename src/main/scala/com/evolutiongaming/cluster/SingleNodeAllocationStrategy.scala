@@ -9,8 +9,7 @@ import scala.concurrent.Future
 
 class SingleNodeAllocationStrategy(
   address: => Option[Address],
-  maxSimultaneousRebalance: Int = 10)
-  extends ExtendedShardAllocationStrategy {
+  maxSimultaneousRebalance: Int = 10) {
 
   private lazy val leastShardAllocation = new LeastShardAllocationStrategy(
     rebalanceThreshold = 10,

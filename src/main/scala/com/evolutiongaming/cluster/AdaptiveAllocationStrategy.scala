@@ -17,11 +17,10 @@ package com.evolutiongaming.cluster
 
 import akka.actor._
 import akka.cluster.Cluster
+import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
-import akka.cluster.sharding.ShardRegion._
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.scalalogging.LazyLogging
-
 import scala.collection.concurrent.TrieMap
 import scala.collection.{immutable, mutable}
 import scala.compat.Platform
@@ -40,28 +39,38 @@ class AdaptiveAllocationStrategy(
   rebalanceThresholdPercent: Int,
   cleanupPeriod: FiniteDuration,
   metricRegistry: MetricRegistry,
-  countControl: CountControl.Type)
-  extends ExtendedShardAllocationStrategy with LazyLogging {
+  countControl: CountControl.Type,
+  fallbackStrategy: ShardAllocationStrategy,
+  proxy: ActorRef,
+  lowTrafficThreshold: Int = 10) extends ShardAllocationStrategy with LazyLogging {
 
   import AdaptiveAllocationStrategy._
   import system.dispatcher
 
+  val addressHelper = AddressHelperExtension(system)
+  import addressHelper._
+
   private implicit val node = Cluster(system)
-  private val selfAddress = node.selfAddress.toString
   private val selfHost = node.selfAddress.host getOrElse "127.0.0.1" replace (".", "_")
 
   private val cleanupPeriodInMillis = cleanupPeriod.toMillis
 
-  /** Should be executed on all nodes, incrementing counters for the local node */
-  override def extractShardId(numberOfShards: Int): ShardRegion.ExtractShardId = {
+  private[cluster] def increase(typeName: String, id: ShardRegion.ShardId, weight: CountControl.Weight): Unit =
+    proxy ! Increase(typeName, id, weight)
+
+  private[cluster] def clear(typeName: String, id: ShardRegion.ShardId): Unit = proxy ! Clear(typeName, id)
+
+  /** Should be executed on all nodes, incrementing counters for the local node (side effects only) */
+  def wrapExtractShardId(extractShardId: ShardRegion.ExtractShardId): ShardRegion.ExtractShardId = {
     case x: ShardedMsg =>
+      val shardId = extractShardId(x)
       val weight = countControl(x)
       if (weight > 0) {
-        increase(typeName, x.id, weight)
+        increase(typeName, shardId, weight)
         if (logger.underlying.isDebugEnabled)
-          metricRegistry.meter(s"sharding.$typeName.sender.${ x.id }.$selfHost").mark(weight.toLong)
+          (metricRegistry meter s"sharding.$typeName.sender.$shardId.$selfHost") mark weight.toLong
       }
-      x.id
+      shardId
   }
 
   /**
@@ -71,114 +80,115 @@ class AdaptiveAllocationStrategy(
     */
   def allocateShard(
     requester: ActorRef,
-    shardId: ShardId,
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = {
+    shardId: ShardRegion.ShardId,
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
-    def maxOption(counters: Set[(String, BigInt)]): Option[(String, BigInt)] =
-      counters.reduceOption[(String, BigInt)] {
-        case ((key1, cnt1), (key2, cnt2)) => if (cnt1 >= cnt2) (key1, cnt1) else (key2, cnt2)
-      }
+    def maxOption(nodeCounters: Set[(CounterKey, BigInt)]): Option[(CounterKey, BigInt)] =
+      if (nodeCounters.isEmpty) None else Some(nodeCounters maxBy { case (_, cnt) => cnt })
 
-    val entityKey = genEntityKey(typeName, shardId)
-    val toNode = entityToNodeCounters get entityKey match {
-      case None              => requester
-      case Some(counterKeys) =>
-
-        val nodeCounters = for {
-          counterKey <- counterKeys
-          v <- counters get counterKey
-        } yield (counterKey, v.value)
-
-        clear(typeName, shardId)
-
-        val maxNode = maxOption(nodeCounters)
-
-        maxNode match {
-          case None                                    => requester
-          case Some((maxNodeCounterKey, maxNodeValue)) =>
-
-            // access from a non-home node is counted twice - on the non-home node and on the home node
-            // so, to get correct value of the max counter we need to deduct the sum of other counters from it
-            // note, that the shard here is deallocated and not present in currentShardAllocations
-
-            val nonMaxNodeCounters = nodeCounters - (maxNodeCounterKey -> maxNodeValue)
-            val nonMaxNodeCountersSum = (nonMaxNodeCounters map { case (_, cnt) => cnt }).sum
-
-            val correctedCounters = if (maxNodeValue >= nonMaxNodeCountersSum)
-              nonMaxNodeCounters + (maxNodeCounterKey -> (maxNodeValue - nonMaxNodeCountersSum))
-            else nodeCounters
-
-            val correctedMaxNode = maxOption(correctedCounters)
-
-            correctedMaxNode match {
-              case None                                                  => requester
-              case _ if maxNodeValue < currentShardAllocations.keys.size => requester
-              case Some((correctedMaxNodeCounterKey, _))                 =>
-                val addressFromCounterKey = addressByCounterKey(correctedMaxNodeCounterKey)
-                val correctedMaxNodeAddress = currentShardAllocations.keys find { key =>
-                  key.toString contains addressFromCounterKey
-                }
-                correctedMaxNodeAddress getOrElse requester
-            }
-        }
+    def maxNode(nodeCounters: Set[(CounterKey, BigInt)]): Option[(CounterKey, BigInt)] = {
+      clear(typeName, shardId)
+      maxOption(nodeCounters)
     }
 
-    logger debug s"AllocateShard $typeName\n\t" +
-      s"shardId:\t$shardId\n\t" +
-      s"on node:\t$toNode\n\t" +
-      s"requester:\t$requester\n\t"
-    Future successful toNode
+    def correctedMaxNode(
+      nodeCounters: Set[(CounterKey, BigInt)],
+      maxNodeCounterKey: CounterKey,
+      maxNodeValue: BigInt): Option[(CounterKey, BigInt)] = {
+
+      // access from a non-home node is counted twice - on the non-home node and on the home node
+      // so, to get correct value of the max counter we need to deduct the sum of other counters from it
+      // note, that the shard here is deallocated and not present in currentShardAllocations
+
+      val nonMaxNodeCounters = nodeCounters - (maxNodeCounterKey -> maxNodeValue)
+      val nonMaxNodeCountersSum = (nonMaxNodeCounters map { case (_, cnt) => cnt }).sum
+
+      val correctedCounters = if (maxNodeValue >= nonMaxNodeCountersSum)
+        nonMaxNodeCounters + (maxNodeCounterKey -> (maxNodeValue - nonMaxNodeCountersSum))
+      else nodeCounters
+
+      maxOption(correctedCounters)
+    }
+
+    def toNode(correctedMaxNodeCounterKey: CounterKey): Option[ActorRef] = {
+      val addressFromCounterKey = correctedMaxNodeCounterKey.address
+      val correctedMaxNodeAddress = currentShardAllocations.keys find { key =>
+        key.toString contains addressFromCounterKey
+      }
+      correctedMaxNodeAddress
+    }
+
+    val entityKey = EntityKey(typeName, shardId)
+    val proposedNode = for {
+      counterKeys <- entityToNodeCounters get entityKey
+      nodeCounters = for {
+        counterKey <- counterKeys
+        v <- counters get counterKey
+      } yield (counterKey, v.value)
+      (maxNodeCounterKey, maxNodeValue) <- maxNode(nodeCounters)
+      (correctedMaxNodeCounterKey, _) <- correctedMaxNode(nodeCounters, maxNodeCounterKey, maxNodeValue)
+      if maxNodeValue >= currentShardAllocations.keys.size
+      toNode <- toNode(correctedMaxNodeCounterKey)
+    } yield toNode
+
+    proposedNode match {
+      case Some(toNode) =>
+        logger debug s"AllocateShard $typeName\n\t" +
+          s"shardId:\t$shardId\n\t" +
+          s"on node:\t$toNode\n\t" +
+          s"requester:\t$requester\n\t"
+        Future successful toNode
+      case None =>
+        logger debug s"AllocateShard fallback $typeName, shardId:\t$shardId"
+        fallbackStrategy.allocateShard(requester, shardId, currentShardAllocations)
+    }
   }
 
   /** Should be executed every rebalance-interval only on a node with ShardCoordinator */
   def rebalance(
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]],
-    rebalanceInProgress: Set[ShardId]): Future[Set[ShardId]] = Future {
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
+    rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = Future {
 
-    def limitRebalance(f: => Set[ShardId]): Set[ShardId] = {
+    def limitRebalance(f: => Set[ShardRegion.ShardId]): Set[ShardRegion.ShardId] =
       if (rebalanceInProgress.size >= maxSimultaneousRebalance) Set.empty
       else f take maxSimultaneousRebalance
-    }
 
-    val entityToNodeCountersByType = entityToNodeCounters filterKeys (_ startsWith typeName)
+    val entityToNodeCountersByType = entityToNodeCounters filterKeys { _.typeName == typeName }
 
-    val shardsToClear = mutable.Set.empty[ShardId]
+    val shardsToClear = mutable.Set.empty[ShardRegion.ShardId]
 
-    val shardsToRebalance = currentShardAllocations flatMap { case (region, regionShards) =>
-      val regionAddress = if(region.path.address.hasGlobalScope) region.path.address.toString else selfAddress
-      val notRebalancingShards = regionShards.toSet diff rebalanceInProgress
-
-      notRebalancingShards flatMap { shard =>
-        val entityKey = genEntityKey(typeName, shard)
-        entityToNodeCountersByType get entityKey flatMap { counterKeys =>
+    def rebalanceShard(shardId: ShardRegion.ShardId, regionAddress: String): Boolean = {
+      val entityKey = EntityKey(typeName, shardId)
+      entityToNodeCountersByType get entityKey match {
+        case Some(counterKeys) =>
           val cnts = counterKeys flatMap { counterKey =>
-            val isHome = counterKey endsWith regionAddress
+            val isHome = counterKey.address == regionAddress
             counters get counterKey map { v =>
               (isHome, v.value, v.cleared)
             }
           }
 
-          val homeValue =
-            cnts find { case (isHome, _, _) => isHome } map { case (_, v, _)  => v } getOrElse BigInt(0)
+          val homeValue = cnts collectFirst { case (isHome, v, _) if isHome => v } getOrElse BigInt(0)
           val nonHomeValues = cnts collect { case (isHome, v, _) if !isHome => v }
           val nonHomeValuesSum = nonHomeValues.sum
-          val maxNonHomeValue = nonHomeValues reduceOption ((x, y) => if (x >= y) x else y) getOrElse BigInt(0)
+          val maxNonHomeValue = if (nonHomeValues.isEmpty) BigInt(0) else nonHomeValues.max
 
           // clear values if needed
-          val mostOldPastClear = cnts map { case (_, _, clear) => clear } reduceOption
-            ((x, y) => if (x <= y) x else y)
-          for (pastClear <- mostOldPastClear
-               if nonHomeValuesSum > 0 && pastClear < Platform.currentTime - cleanupPeriodInMillis) {
-            shardsToClear += shard
-          }
+          val mostOldPastClear =
+            if (cnts.isEmpty) None
+            else Some((cnts map { case (_, _, clear) => clear }).min)
+
+          for {
+            pastClear <- mostOldPastClear if nonHomeValuesSum > 0 && pastClear < Platform.currentTime - cleanupPeriodInMillis
+          } shardsToClear += shardId
 
           // access from a non-home node is counted twice - on the non-home node and on the home node
           val correctedHomeValue =
             if (homeValue > nonHomeValuesSum) homeValue - nonHomeValuesSum else homeValue
           val rebalanceThreshold =
-            (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) + 10
+            (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) + lowTrafficThreshold
 
-          logger debug s"Shard:$shard, " +
+          logger debug s"Shard:$shardId, " +
             s"homeValue:$homeValue, " +
             s"correctedHomeValue:$correctedHomeValue, " +
             s"maxNonHomeValue:$maxNonHomeValue, " +
@@ -186,13 +196,20 @@ class AdaptiveAllocationStrategy(
             s"nonHomeValuesSum:$nonHomeValuesSum, " +
             s"rebalanceThreshold:$rebalanceThreshold"
 
-          if (maxNonHomeValue > correctedHomeValue + rebalanceThreshold) {
-            if (logger.underlying.isDebugEnabled) metricRegistry.meter(s"sharding.$typeName.rebalance.$shard").mark()
-            Some(shard)
-          } else None
-        }
+          val rebalance = maxNonHomeValue > correctedHomeValue + rebalanceThreshold
+          if (rebalance && logger.underlying.isDebugEnabled) metricRegistry.meter(s"sharding.$typeName.rebalance.$shardId").mark()
+          rebalance
+
+        case None => false
       }
     }
+
+    val shardsToRebalance = for {
+      (region, regionShards) <- currentShardAllocations
+      regionAddress = region.path.address.global.toString
+      notRebalancingShards = regionShards.toSet -- rebalanceInProgress
+      shard <- notRebalancingShards if rebalanceShard(shard, regionAddress)
+    } yield shard
 
     val result = limitRebalance(shardsToRebalance.toSet)
 
@@ -212,20 +229,17 @@ class AdaptiveAllocationStrategy(
 
 object AdaptiveAllocationStrategy {
 
-  // proxyProps is needed for unit tests
   def apply(
     typeName: String,
     maxSimultaneousRebalance: Int,
     rebalanceThresholdPercent: Int,
     cleanupPeriod: FiniteDuration,
     metricRegistry: MetricRegistry,
-    countControl: CountControl.Type = CountControl.Empty)
-    (proxyProps: Props = Props[AdaptiveAllocationStrategyDistributedDataProxy])
+    countControl: CountControl.Type = CountControl.Empty,
+    fallbackStrategy: ShardAllocationStrategy = new RequesterAllocationStrategy)
     (implicit system: ActorSystem): AdaptiveAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
-    if (proxy.isEmpty) this synchronized {
-      if (proxy.isEmpty) proxy = Some(system actorOf proxyProps)
-    }
+    val proxy = AdaptiveAllocationStrategyDistributedDataProxy(system).ref
     new AdaptiveAllocationStrategy(
       typeName = typeName,
       system = system,
@@ -233,34 +247,44 @@ object AdaptiveAllocationStrategy {
       rebalanceThresholdPercent = rebalanceThresholdPercent,
       cleanupPeriod = cleanupPeriod,
       metricRegistry = metricRegistry,
-      countControl)
+      countControl,
+      fallbackStrategy = fallbackStrategy,
+      proxy = proxy)
   }
 
-  def genEntityKey(typeName: String, id: ShardId): String =
-    s"$typeName#$id" // should always start with typeName
-  def genCounterKey(entityKey: String, selfAddress: String): String =
-    s"$entityKey#$selfAddress" // should always end with selfAddress
-  def addressByCounterKey(address: String): String =
-    (address split "#") lift 2 getOrElse "" // typeName#shardId#address
+  case class EntityKey(typeName: String, id: ShardRegion.ShardId) {
+    override def toString: String = s"$typeName#$id"
+  }
 
-  @volatile
-  private[cluster] var proxy: Option[ActorRef] = None
+  object EntityKey {
+    def unapply(arg: List[String]): Option[EntityKey] = arg match {
+      case typeName :: id :: Nil => Some(EntityKey(typeName, id))
+      case _                     => None
+    }
 
-  // one access counter per entity-node
-  private[cluster] val counters = TrieMap.empty[String, ValueData]
+    def unapply(arg: String): Option[EntityKey] = unapply((arg split "#").toList)
+  }
 
-  // typeName with entity id -> id-s of it's access counters for all nodes
-  @volatile
-  private[cluster] var entityToNodeCounters: Map[String, Set[String]] = Map.empty
+  case class CounterKey(entityKey: EntityKey, address: String) {
+    override def toString: String = s"$entityKey#$address"
+  }
 
-  private[cluster] def increase(typeName: String, id: ShardId, weight: CountControl.Weight): Unit =
-    proxy foreach (_ ! Increase(typeName, id, weight))
-
-  private[cluster] def clear(typeName: String, id: ShardId): Unit =
-    proxy foreach (_ ! Clear(typeName, id))
+  object CounterKey {
+    def unapply(arg: String): Option[CounterKey] = (arg split "#").toList match {
+      case list :+ address => EntityKey unapply list map { CounterKey(_, address) }
+      case _               => None
+    }
+  }
 
   case class ValueData(value: BigInt, cleared: Long)
 
-  case class Increase(typeName: String, id: ShardId, weight: CountControl.Weight)
-  case class Clear(typeName: String, id: ShardId)
+  case class Increase(typeName: String, id: ShardRegion.ShardId, weight: CountControl.Weight)
+  case class Clear(typeName: String, id: ShardRegion.ShardId)
+
+  // one access counter per entity-node
+  private[cluster] val counters = TrieMap.empty[CounterKey, ValueData]
+
+  // typeName with entity id -> id-s of it's access counters for all nodes
+  @volatile
+  private[cluster] var entityToNodeCounters: Map[EntityKey, Set[CounterKey]] = Map.empty
 }
