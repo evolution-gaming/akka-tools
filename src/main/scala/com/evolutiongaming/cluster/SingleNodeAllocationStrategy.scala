@@ -1,7 +1,7 @@
 package com.evolutiongaming.cluster
 
 import akka.actor.{ActorRef, Address}
-import akka.cluster.sharding.ShardCoordinator.LeastShardAllocationStrategy
+import akka.cluster.sharding.ShardCoordinator.{LeastShardAllocationStrategy, ShardAllocationStrategy}
 import akka.cluster.sharding.ShardRegion.ShardId
 
 import scala.collection.immutable.IndexedSeq
@@ -9,7 +9,7 @@ import scala.concurrent.Future
 
 class SingleNodeAllocationStrategy(
   address: => Option[Address],
-  maxSimultaneousRebalance: Int = 10) {
+  maxSimultaneousRebalance: Int = 10) extends ShardAllocationStrategy {
 
   private lazy val leastShardAllocation = new LeastShardAllocationStrategy(
     rebalanceThreshold = 10,
