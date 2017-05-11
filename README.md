@@ -25,3 +25,11 @@ b) shards if their nodes are not found in the current cluster nodes.
 ### RequesterAllocationStrategy
 RequesterAllocationStrategy is for allocating a shard on a node of the first access attempt to this shard (and never reallocate them).
 It is needed primarily for using as a fallback allocation strategy in other strategies (e.g. AdaptiveAllocationStrategy).
+
+## Setup
+
+```scala
+resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
+
+libraryDependencies += "com.evolutiongaming" %% "akka-tools" % "1.1.1"
+```
