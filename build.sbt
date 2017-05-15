@@ -38,9 +38,9 @@ val AkkaVersion = "2.5.1"
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies ++= Seq(
-  "com.evolutiongaming" %% "scala-tools" % "1.3",
+  "com.evolutiongaming" %% "scala-tools" % "1.6",
   "com.evolutiongaming" %% "metric-tools" % "0.4",
-  "io.dropwizard.metrics" % "metrics-core" % "3.2.1",
+  "io.dropwizard.metrics" % "metrics-core" % "3.2.2",
   "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster" % AkkaVersion,
   "com.typesafe.akka" %% "akka-cluster-sharding" % AkkaVersion,
