@@ -21,15 +21,16 @@ import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.FiniteDuration
 
 class DualAllocationStrategy(
   baseAllocationStrategy: ShardAllocationStrategy,
   additionalAllocationStrategy: ShardAllocationStrategy,
-  readSettings: () => Option[Set[ShardRegion.ShardId]])
-  (implicit system: ActorSystem) extends ShardAllocationStrategy with LazyLogging {
-
-  import system.dispatcher
+  readSettings: () => Option[Set[ShardRegion.ShardId]],
+  maxSimultaneousRebalance: Int,
+  deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy(system, ec, maxSimultaneousRebalance, deallocationTimeout) with LazyLogging {
 
   @volatile
   private var additionalShardIds = Set.empty[ShardRegion.ShardId]
@@ -49,7 +50,7 @@ class DualAllocationStrategy(
       baseAllocationStrategy.allocateShard(requester, shardId, currentShardAllocations)
   }
 
-  def rebalance(
+  protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
 
@@ -84,11 +85,15 @@ object DualAllocationStrategy {
   def apply(
     baseAllocationStrategy: ShardAllocationStrategy,
     additionalAllocationStrategy: ShardAllocationStrategy,
-    readSettings: () => Option[String])(implicit system: ActorSystem): DualAllocationStrategy =
+    readSettings: () => Option[String],
+    maxSimultaneousRebalance: Int,
+    deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext): DualAllocationStrategy =
     new DualAllocationStrategy(
       baseAllocationStrategy,
       additionalAllocationStrategy,
-      readAndParseSettings(readSettings))
+      readAndParseSettings(readSettings),
+      maxSimultaneousRebalance,
+      deallocationTimeout)
 
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Set[ShardRegion.ShardId]] =

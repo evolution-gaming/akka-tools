@@ -309,14 +309,14 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     // limit rebalance to 1 - should rebalance 4
     val strategy1 = new AdaptiveAllocationStrategy(
       typeName = TypeName,
-      system = system,
       maxSimultaneousRebalance = 1,
       rebalanceThresholdPercent = RebalanceThresholdPercent,
       cleanupPeriod = CleanupPeriod,
       metricRegistry = metricRegistry,
       countControl = CountControl.Increment,
-      fallbackStrategy = new RequesterAllocationStrategy,
-      proxy = proxy)
+      fallbackStrategy = fallbackStrategy,
+      proxy = proxy,
+      deallocationTimeout = deallocationTimeout)
 
     val result5 = strategy1.rebalance(
       shardAllocations,
@@ -335,6 +335,8 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     AdaptiveAllocationStrategy.entityToNodeCounters = Map.empty
 
     implicit val node = Cluster(system)
+
+    implicit val ec = system.dispatcher
 
     val TypeName = "typeName"
 
@@ -435,16 +437,20 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
 
     val proxy = system actorOf Props(new TestProxy)
 
+    val deallocationTimeout = 5.minutes
+
+    val fallbackStrategy = new RequesterAllocationStrategy(MaxSimultaneousRebalance, deallocationTimeout)
+
     val strategy = new AdaptiveAllocationStrategy(
       typeName = TypeName,
-      system = system,
       maxSimultaneousRebalance = MaxSimultaneousRebalance,
       rebalanceThresholdPercent = RebalanceThresholdPercent,
       cleanupPeriod = CleanupPeriod,
       metricRegistry = metricRegistry,
       countControl = CountControl.Increment,
-      fallbackStrategy = new RequesterAllocationStrategy,
-      proxy = proxy)
+      fallbackStrategy = fallbackStrategy,
+      proxy = proxy,
+      deallocationTimeout = deallocationTimeout)
 
     expectMsgPF() {
       case Subscribe(EntityToNodeCountersKey, _) =>

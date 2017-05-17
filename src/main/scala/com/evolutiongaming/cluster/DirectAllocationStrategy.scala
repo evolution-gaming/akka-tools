@@ -21,18 +21,17 @@ import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.FiniteDuration
 
 // this AllocationStrategy is for debug purposes only
 class DirectAllocationStrategy(
   fallbackStrategy: ShardAllocationStrategy,
-  readSettings: () => Option[Map[ShardRegion.ShardId, String]])
-  (implicit system: ActorSystem) extends ShardAllocationStrategy
-  with LazyLogging {
+  readSettings: () => Option[Map[ShardRegion.ShardId, String]],
+  maxSimultaneousRebalance: Int,
+  deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy(system, ec, maxSimultaneousRebalance, deallocationTimeout) with LazyLogging {
 
-  import system.dispatcher
-
-  val addressHelper = AddressHelperExtension(system)
   import addressHelper._
 
   @volatile
@@ -70,7 +69,7 @@ class DirectAllocationStrategy(
     }
   }
 
-  def rebalance(
+  protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
 
@@ -103,8 +102,14 @@ class DirectAllocationStrategy(
 object DirectAllocationStrategy {
   def apply(
     fallbackStrategy: ShardAllocationStrategy,
-    readSettings: () => Option[String])(implicit system: ActorSystem): DirectAllocationStrategy =
-    new DirectAllocationStrategy(fallbackStrategy, readAndParseSettings(readSettings))
+    readSettings: () => Option[String],
+    maxSimultaneousRebalance: Int,
+    deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext): DirectAllocationStrategy =
+    new DirectAllocationStrategy(
+      fallbackStrategy,
+      readAndParseSettings(readSettings),
+      maxSimultaneousRebalance,
+      deallocationTimeout)
 
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Map[ShardRegion.ShardId, String]] =
