@@ -35,16 +35,16 @@ import scala.concurrent.duration.FiniteDuration
   */
 class AdaptiveAllocationStrategy(
   typeName: String,
-  maxSimultaneousRebalance: Int,
   rebalanceThresholdPercent: Int,
   cleanupPeriod: FiniteDuration,
   metricRegistry: MetricRegistry,
   countControl: CountControl.Type,
   fallbackStrategy: ShardAllocationStrategy,
   proxy: ActorRef,
-  deallocationTimeout: FiniteDuration,
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address],
   lowTrafficThreshold: Int = 10)(implicit system: ActorSystem, ec: ExecutionContext)
-  extends ExtendedShardAllocationStrategy(system, ec, maxSimultaneousRebalance, deallocationTimeout) with LazyLogging {
+  extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import AdaptiveAllocationStrategy._
   import addressHelper._
@@ -226,26 +226,26 @@ object AdaptiveAllocationStrategy {
 
   def apply(
     typeName: String,
-    maxSimultaneousRebalance: Int,
     rebalanceThresholdPercent: Int,
     cleanupPeriod: FiniteDuration,
     metricRegistry: MetricRegistry,
     countControl: CountControl.Type = CountControl.Empty,
     fallbackStrategy: ShardAllocationStrategy,
-    deallocationTimeout: FiniteDuration)
+    maxSimultaneousRebalance: Int,
+    nodesToDeallocate: () => Set[Address])
     (implicit system: ActorSystem, ec: ExecutionContext): AdaptiveAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
     val proxy = AdaptiveAllocationStrategyDistributedDataProxy(system).ref
     new AdaptiveAllocationStrategy(
       typeName = typeName,
-      maxSimultaneousRebalance = maxSimultaneousRebalance,
       rebalanceThresholdPercent = rebalanceThresholdPercent,
       cleanupPeriod = cleanupPeriod,
       metricRegistry = metricRegistry,
-      countControl,
+      countControl = countControl,
       fallbackStrategy = fallbackStrategy,
       proxy = proxy,
-      deallocationTimeout = deallocationTimeout)(system, ec)
+      maxSimultaneousRebalance = maxSimultaneousRebalance,
+      nodesToDeallocate = nodesToDeallocate)(system, ec)
   }
 
   case class EntityKey(typeName: String, id: ShardRegion.ShardId) {

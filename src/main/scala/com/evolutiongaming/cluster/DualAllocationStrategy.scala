@@ -15,22 +15,21 @@
  */
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Address}
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.FiniteDuration
 
 class DualAllocationStrategy(
   baseAllocationStrategy: ShardAllocationStrategy,
   additionalAllocationStrategy: ShardAllocationStrategy,
   readSettings: () => Option[Set[ShardRegion.ShardId]],
-  maxSimultaneousRebalance: Int,
-  deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext)
-  extends ExtendedShardAllocationStrategy(system, ec, maxSimultaneousRebalance, deallocationTimeout) with LazyLogging {
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy with LazyLogging {
 
   @volatile
   private var additionalShardIds = Set.empty[ShardRegion.ShardId]
@@ -87,13 +86,13 @@ object DualAllocationStrategy {
     additionalAllocationStrategy: ShardAllocationStrategy,
     readSettings: () => Option[String],
     maxSimultaneousRebalance: Int,
-    deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext): DualAllocationStrategy =
+    nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext): DualAllocationStrategy =
     new DualAllocationStrategy(
       baseAllocationStrategy,
       additionalAllocationStrategy,
       readAndParseSettings(readSettings),
       maxSimultaneousRebalance,
-      deallocationTimeout)
+      nodesToDeallocate)
 
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Set[ShardRegion.ShardId]] =

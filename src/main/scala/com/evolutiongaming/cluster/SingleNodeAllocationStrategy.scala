@@ -7,13 +7,12 @@ import akka.cluster.sharding.ShardRegion.ShardId
 
 import scala.collection.immutable.IndexedSeq
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.FiniteDuration
 
 class SingleNodeAllocationStrategy(
   address: => Option[Address],
-  maxSimultaneousRebalance: Int,
-  deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext)
-  extends ExtendedShardAllocationStrategy(system, ec, maxSimultaneousRebalance, deallocationTimeout) {
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy {
 
   private lazy val leastShardAllocation = new LeastShardAllocationStrategy(
     rebalanceThreshold = 10,

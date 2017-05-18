@@ -1,19 +1,18 @@
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Address}
 import akka.cluster.sharding.ShardRegion
 
 import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.FiniteDuration
 
 // Allocate all shards on requester nodes
 // to be used primarily for debugging purposes and,
 // for example, as fallbackAllocationStrategy in DirectAllocationStrategy
 class RequesterAllocationStrategy(
-  maxSimultaneousRebalance: Int,
-  deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext)
-  extends ExtendedShardAllocationStrategy(system, ec, maxSimultaneousRebalance, deallocationTimeout) {
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy {
 
   def allocateShard(
     requester: ActorRef,

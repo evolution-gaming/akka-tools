@@ -15,22 +15,21 @@
  */
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Address}
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration.FiniteDuration
 
 // this AllocationStrategy is for debug purposes only
 class DirectAllocationStrategy(
   fallbackStrategy: ShardAllocationStrategy,
   readSettings: () => Option[Map[ShardRegion.ShardId, String]],
-  maxSimultaneousRebalance: Int,
-  deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext)
-  extends ExtendedShardAllocationStrategy(system, ec, maxSimultaneousRebalance, deallocationTimeout) with LazyLogging {
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import addressHelper._
 
@@ -104,12 +103,12 @@ object DirectAllocationStrategy {
     fallbackStrategy: ShardAllocationStrategy,
     readSettings: () => Option[String],
     maxSimultaneousRebalance: Int,
-    deallocationTimeout: FiniteDuration)(implicit system: ActorSystem, ec: ExecutionContext): DirectAllocationStrategy =
+    nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext): DirectAllocationStrategy =
     new DirectAllocationStrategy(
       fallbackStrategy,
       readAndParseSettings(readSettings),
       maxSimultaneousRebalance,
-      deallocationTimeout)
+      nodesToDeallocate)
 
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Map[ShardRegion.ShardId, String]] =
