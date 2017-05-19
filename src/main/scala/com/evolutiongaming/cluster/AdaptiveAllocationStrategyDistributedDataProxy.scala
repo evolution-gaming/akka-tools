@@ -27,7 +27,7 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
   import AdaptiveAllocationStrategy._
   import AdaptiveAllocationStrategyDistributedDataProxy._
 
-  implicit val node = Cluster(context.system)
+  implicit lazy val node = Cluster(context.system)
   private val selfAddress = node.selfAddress.toString
   lazy val replicator: ActorRef = DistributedData(context.system).replicator
 

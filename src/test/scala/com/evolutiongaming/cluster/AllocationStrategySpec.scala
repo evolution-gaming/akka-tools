@@ -4,7 +4,6 @@ import akka.TestDummyActorRef
 import akka.actor.{ActorRef, Address, ChildActorPath, RootActorPath}
 import akka.testkit.DefaultTimeout
 import com.evolutiongaming.util.ActorSpec
-import com.typesafe.config.ConfigValueFactory
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
 import org.scalatest.concurrent.{Eventually, PatienceConfiguration, ScalaFutures}
 import org.scalatest.mockito.MockitoSugar
@@ -21,9 +20,6 @@ trait AllocationStrategySpec extends FlatSpec
   with PatienceConfiguration {
 
   override implicit val patienceConfig = PatienceConfig(5.seconds, 500.millis)
-
-  override def config = super.config withValue
-    ("akka.actor.provider", ConfigValueFactory fromAnyRef "akka.cluster.ClusterActorRefProvider")
 
   trait AllocationStrategyScope extends ActorScope with DefaultTimeout {
 

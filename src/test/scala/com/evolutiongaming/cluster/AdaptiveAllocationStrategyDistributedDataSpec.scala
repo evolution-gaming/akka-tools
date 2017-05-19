@@ -16,7 +16,7 @@
 package com.evolutiongaming.cluster
 
 import akka.actor._
-import akka.cluster.Cluster
+import akka.cluster.{Cluster, UniqueAddress}
 import akka.cluster.ddata.Replicator.{Changed, Subscribe, Update, WriteLocal}
 import akka.cluster.ddata.{ORMultiMap, PNCounter, PNCounterKey}
 import akka.cluster.sharding.ShardRegion.ShardId
@@ -298,7 +298,9 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
       fallbackStrategy = fallbackStrategy,
       proxy = proxy,
       maxSimultaneousRebalance = 1,
-      nodesToDeallocate = () => Set.empty)
+      nodesToDeallocate = () => Set.empty) {
+      override protected implicit lazy val node = clusterNode
+    }
 
     val result5 = strategy1.rebalance(
       shardAllocations,
@@ -316,11 +318,14 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
     AdaptiveAllocationStrategy.counters.clear()
     AdaptiveAllocationStrategy.entityToNodeCounters = Map.empty
 
-    implicit val node = Cluster(system)
+    val uniqueAddress = UniqueAddress(Address("protocol", "system", "127.0.0.1", 1234), 1L)
+    implicit val clusterNode = mock[Cluster]
+    when(clusterNode.selfUniqueAddress) thenReturn uniqueAddress
+    when(clusterNode.selfAddress) thenReturn uniqueAddress.address
 
     val TypeName = "typeName"
 
-    val selfAddress = node.selfAddress.toString
+    val selfAddress = clusterNode.selfAddress.toString
 
     def entityKey(entityId: String) = AdaptiveAllocationStrategy.EntityKey(TypeName, entityId)
     def counterKey(entityId: String, address: String = selfAddress) =
@@ -332,7 +337,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
 
     val cleanupPeriodMillis = CleanupPeriod.toMillis
 
-    val localAddressRef = mockedAddressRef(node.selfAddress)
+    val localAddressRef = mockedAddressRef(clusterNode.selfAddress)
     val anotherAddressRef1 = mockedHostRef("anotherAddress1")
     val anotherAddressRef2 = mockedHostRef("anotherAddress2")
 
@@ -415,7 +420,9 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
       fallbackStrategy = fallbackStrategy,
       proxy = proxy,
       maxSimultaneousRebalance = MaxSimultaneousRebalance,
-      nodesToDeallocate = () => Set.empty)
+      nodesToDeallocate = () => Set.empty) {
+      override protected implicit lazy val node = clusterNode
+    }
 
     expectMsgPF() {
       case Subscribe(EntityToNodeCountersKey, _) =>
@@ -423,6 +430,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
 
     class TestProxy extends AdaptiveAllocationStrategyDistributedDataProxy {
       override lazy val replicator = testActor
+      override implicit lazy val node = clusterNode
     }
   }
 }

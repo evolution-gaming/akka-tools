@@ -48,7 +48,7 @@ class AdaptiveAllocationStrategy(
 
   import AdaptiveAllocationStrategy._
 
-  private implicit val node = Cluster(system)
+  protected implicit lazy val node = Cluster(system)
   private val selfHost = node.selfAddress.host getOrElse "127.0.0.1" replace (".", "_")
 
   private val cleanupPeriodInMillis = cleanupPeriod.toMillis
