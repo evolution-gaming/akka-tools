@@ -76,7 +76,7 @@ class DualAllocationStrategy(
     for {
       additionalStrategyResult <- additionalStrategyResultFuture
       baseStrategyResult <- baseStrategyResultFuture
-    } yield baseStrategyResult ++ additionalStrategyResult
+    } yield baseStrategyResult ++ additionalStrategyResult -- rebalanceInProgress
   }
 }
 
@@ -94,6 +94,7 @@ object DualAllocationStrategy {
       maxSimultaneousRebalance,
       nodesToDeallocate)
 
+  // shardId1, shardId2,shardId3
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Set[ShardRegion.ShardId]] =
     () => for {

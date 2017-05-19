@@ -13,7 +13,7 @@ abstract class ExtendedShardAllocationStrategy(
 
   protected def nodesToDeallocate: () => Set[Address]
 
-  val addressHelper = AddressHelperExtension(system)
+  protected val addressHelper = AddressHelperExtension(system)
   import addressHelper._
 
   protected def maxSimultaneousRebalance: Int
@@ -28,7 +28,7 @@ abstract class ExtendedShardAllocationStrategy(
 
     def limitRebalance(f: => Set[ShardRegion.ShardId]): Set[ShardRegion.ShardId] =
       if (rebalanceInProgress.size >= maxSimultaneousRebalance) Set.empty
-      else f take maxSimultaneousRebalance
+      else f take maxSimultaneousRebalance - rebalanceInProgress.size
 
     val nodesToForcedDeallocation = nodesToDeallocate()
 

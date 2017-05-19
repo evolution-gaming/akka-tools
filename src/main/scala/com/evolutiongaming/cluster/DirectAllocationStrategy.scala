@@ -82,10 +82,10 @@ class DirectAllocationStrategy(
     val shardsToReallocate = for {
       shardId <- ourShards
       targetAddress <- addressForShardId(shardId, currentShardAllocations.keySet)
-      currentAddress = currentShardAllocationsOptimized collectFirst {
+      currentAddress <- currentShardAllocationsOptimized collectFirst {
         case (address, shards) if shards contains shardId => address
       }
-      if !(currentAddress contains targetAddress)
+      if currentAddress != targetAddress
     } yield shardId
 
     val fallbackStrategyAllocation = currentShardAllocationsOptimized map {
@@ -94,7 +94,7 @@ class DirectAllocationStrategy(
 
     for {
       fallbackStrategyResult <- fallbackStrategy.rebalance(fallbackStrategyAllocation, rebalanceInProgress -- ourShards)
-    } yield shardsToReallocate ++ fallbackStrategyResult
+    } yield shardsToReallocate ++ fallbackStrategyResult -- rebalanceInProgress
   }
 }
 
@@ -110,14 +110,14 @@ object DirectAllocationStrategy {
       maxSimultaneousRebalance,
       nodesToDeallocate)
 
+  // entityId|ipAddress, entityId | ipAddress, entityId|ipAddress
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Map[ShardRegion.ShardId, String]] =
-  // entityId|ipAddress, entityId | ipAddress, entityId|ipAddress
     () => for {
       settings <- readSettings()
     } yield {
       ((settings split "," map (_.trim) filter (_.nonEmpty)) map { elem =>
-        (elem split "|" map (_.trim) filter (_.nonEmpty)).toList
+        (elem split "\\|" map (_.trim) filter (_.nonEmpty)).toList
       } collect {
         case k :: v :: Nil => (k, v)
       }).toMap
