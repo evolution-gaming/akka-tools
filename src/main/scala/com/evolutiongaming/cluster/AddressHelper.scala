@@ -2,16 +2,19 @@ package com.evolutiongaming.cluster
 
 import akka.actor.{Address, ExtendedActorSystem, Extension, ExtensionId}
 
-class AddressHelper(system: ExtendedActorSystem) extends Extension {
+class AddressHelper(val defaultAddress: Address) extends Extension {
 
-  lazy val address: Address = system.provider.getDefaultAddress
+  def toLocal(address: Address): Address = {
+    if (address == defaultAddress) address.copy(host = None, port = None, protocol = "akka") else address
+  }
 
-  implicit class RichAddress(val self: Address) {
-    def local: Address = if (self == address) self.copy(host = None, port = None, protocol = "akka") else self
-    def global: Address = if (self.hasGlobalScope) self else address
+  def toGlobal(address: Address): Address = {
+    if (address.hasGlobalScope) address else defaultAddress
   }
 }
 
 object AddressHelperExtension extends ExtensionId[AddressHelper] {
-  def createExtension(system: ExtendedActorSystem): AddressHelper = new AddressHelper(system)
+  def createExtension(system: ExtendedActorSystem): AddressHelper = {
+    new AddressHelper(system.provider.getDefaultAddress)
+  }
 }

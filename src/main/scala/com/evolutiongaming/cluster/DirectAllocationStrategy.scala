@@ -33,7 +33,6 @@ class DirectAllocationStrategy(
   import system.dispatcher
 
   val addressHelper = AddressHelperExtension(system)
-  import addressHelper._
 
   @volatile
   private var shardIdToAddress = Map.empty[ShardRegion.ShardId, String]
@@ -47,7 +46,7 @@ class DirectAllocationStrategy(
     addresses: Set[ActorRef]): Option[ActorRef] = {
 
     shardIdToAddress get shardId flatMap { ipAddress =>
-      addresses find (_.path.address.global.host contains ipAddress)
+      addresses find (x => addressHelper.toGlobal(x.path.address).host contains ipAddress)
     }
   }
 
