@@ -1,6 +1,6 @@
 package com.evolutiongaming.cluster
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, Address}
 import akka.cluster.sharding.ShardRegion.ShardId
 
 import scala.collection.immutable
@@ -12,7 +12,7 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
 
     val strategy = new TestExtendedShardAllocationStrategy() {
       override val maxSimultaneousRebalance = 10
-      override val nodesToDeallocate = () => Set.empty
+      override val nodesToDeallocate = () => Set.empty[Address]
       override val result = ShardIds.toSet -- RebalanceInProgress
     }
 

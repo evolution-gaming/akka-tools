@@ -19,7 +19,7 @@ trait AllocationStrategySpec extends FlatSpec
   with Eventually
   with PatienceConfiguration {
 
-  override implicit val patienceConfig = PatienceConfig(5.seconds, 500.millis)
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(5.seconds, 500.millis)
 
   trait AllocationStrategyScope extends ActorScope with DefaultTimeout {
 
