@@ -4,11 +4,14 @@ import akka.actor.{Address, ExtendedActorSystem, Extension, ExtensionId}
 
 class AddressHelper(system: ExtendedActorSystem) extends Extension {
 
-  lazy val address: Address = system.provider.getDefaultAddress
+  def defaultAddress: Address = system.provider.getDefaultAddress
 
-  implicit class RichAddress(val self: Address) {
-    def local: Address = if (self == address) self.copy(host = None, port = None, protocol = "akka") else self
-    def global: Address = if (self.hasGlobalScope) self else address
+  def toLocal(address: Address): Address = {
+    if (address == defaultAddress) address.copy(host = None, port = None, protocol = "akka") else address
+  }
+
+  def toGlobal(address: Address): Address = {
+    if (address.hasGlobalScope) address else defaultAddress
   }
 }
 
