@@ -11,7 +11,9 @@ trait ActorSpec extends BeforeAndAfterAll { this: Suite =>
 
   def config = ConfigFactory.load()
 
-  override protected def afterAll() = TestKit.shutdownActorSystem(system)
+  override protected def afterAll() = {
+    TestKit.shutdownActorSystem(system)
+  }
 
   abstract class ActorScope extends TestKit(system) with ImplicitSender with DefaultTimeout
 }

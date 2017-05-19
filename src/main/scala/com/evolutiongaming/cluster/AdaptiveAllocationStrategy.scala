@@ -47,7 +47,6 @@ class AdaptiveAllocationStrategy(
   extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import AdaptiveAllocationStrategy._
-  import addressHelper._
 
   private implicit val node = Cluster(system)
   private val selfHost = node.selfAddress.host getOrElse "127.0.0.1" replace (".", "_")
@@ -201,7 +200,7 @@ class AdaptiveAllocationStrategy(
 
     val shardsToRebalance = for {
       (region, regionShards) <- currentShardAllocations
-      regionAddress = region.path.address.global.toString
+      regionAddress = addressHelper.toGlobal(region.path.address).toString
       notRebalancingShards = regionShards.toSet -- rebalanceInProgress
       shard <- notRebalancingShards if rebalanceShard(shard, regionAddress)
     } yield shard
