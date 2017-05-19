@@ -14,7 +14,6 @@ abstract class ExtendedShardAllocationStrategy(
   protected def nodesToDeallocate: () => Set[Address]
 
   protected val addressHelper = AddressHelperExtension(system)
-  import addressHelper._
 
   protected def maxSimultaneousRebalance: Int
 
@@ -37,7 +36,7 @@ abstract class ExtendedShardAllocationStrategy(
         doRebalance(currentShardAllocations, rebalanceInProgress)
       } else {
         val shardsToForcedDeallocation = (for {
-          (k, v) <- currentShardAllocations if nodesToForcedDeallocation contains k.path.address.global
+          (k, v) <- currentShardAllocations if nodesToForcedDeallocation contains addressHelper.toGlobal(k.path.address)
         } yield v).flatten.toSet -- rebalanceInProgress
 
         for {
