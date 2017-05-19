@@ -1,15 +1,18 @@
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, Address}
-import akka.cluster.sharding.ShardCoordinator.{LeastShardAllocationStrategy, ShardAllocationStrategy}
+import akka.actor.{ActorRef, ActorSystem, Address}
+import akka.cluster.sharding.ShardCoordinator.LeastShardAllocationStrategy
+import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.ShardId
 
 import scala.collection.immutable.IndexedSeq
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class SingleNodeAllocationStrategy(
   address: => Option[Address],
-  maxSimultaneousRebalance: Int = 10) extends ShardAllocationStrategy {
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy {
 
   private lazy val leastShardAllocation = new LeastShardAllocationStrategy(
     rebalanceThreshold = 10,
@@ -29,21 +32,15 @@ class SingleNodeAllocationStrategy(
     result map { Future.successful } getOrElse leastShardAllocation.allocateShard(requester, shardId, current)
   }
 
-  def rebalance(current: Map[ActorRef, IndexedSeq[ShardId]], rebalanceInProgress: Set[ShardId]) = {
-    def limitRebalance(f: => Set[ShardId]): Set[ShardId] = {
-      if (rebalanceInProgress.size >= maxSimultaneousRebalance) Set.empty
-      else f take maxSimultaneousRebalance
-    }
+  protected def doRebalance(
+    current: Map[ActorRef, IndexedSeq[ShardId]],
+    rebalanceInProgress: Set[ShardId]): Future[Set[ShardRegion.ShardId]]= {
+    val result = for {
+      address <- address.toIterable
+      (actor, shards) <- current if actor.path.address != address
+      shard <- shards
+    } yield shard
 
-    val result = limitRebalance {
-      val result = for {
-        address <- address.toIterable
-        (actor, shards) <- current if actor.path.address != address
-        shard <- shards
-      } yield shard
-      result.toSet -- rebalanceInProgress
-    }
-
-    Future successful result
+    Future successful result.toSet -- rebalanceInProgress
   }
 }

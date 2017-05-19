@@ -15,24 +15,21 @@
  */
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Address}
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 // this AllocationStrategy is for debug purposes only
 class DirectAllocationStrategy(
   fallbackStrategy: ShardAllocationStrategy,
-  readSettings: () => Option[Map[ShardRegion.ShardId, String]])
-  (implicit system: ActorSystem) extends ShardAllocationStrategy
-  with LazyLogging {
-
-  import system.dispatcher
-
-  val addressHelper = AddressHelperExtension(system)
+  readSettings: () => Option[Map[ShardRegion.ShardId, String]],
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy with LazyLogging {
 
   @volatile
   private var shardIdToAddress = Map.empty[ShardRegion.ShardId, String]
@@ -69,7 +66,7 @@ class DirectAllocationStrategy(
     }
   }
 
-  def rebalance(
+  protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
 
@@ -83,10 +80,10 @@ class DirectAllocationStrategy(
     val shardsToReallocate = for {
       shardId <- ourShards
       targetAddress <- addressForShardId(shardId, currentShardAllocations.keySet)
-      currentAddress = currentShardAllocationsOptimized collectFirst {
+      currentAddress <- currentShardAllocationsOptimized collectFirst {
         case (address, shards) if shards contains shardId => address
       }
-      if !(currentAddress contains targetAddress)
+      if currentAddress != targetAddress
     } yield shardId
 
     val fallbackStrategyAllocation = currentShardAllocationsOptimized map {
@@ -95,24 +92,30 @@ class DirectAllocationStrategy(
 
     for {
       fallbackStrategyResult <- fallbackStrategy.rebalance(fallbackStrategyAllocation, rebalanceInProgress -- ourShards)
-    } yield shardsToReallocate ++ fallbackStrategyResult
+    } yield shardsToReallocate ++ fallbackStrategyResult -- rebalanceInProgress
   }
 }
 
 object DirectAllocationStrategy {
   def apply(
     fallbackStrategy: ShardAllocationStrategy,
-    readSettings: () => Option[String])(implicit system: ActorSystem): DirectAllocationStrategy =
-    new DirectAllocationStrategy(fallbackStrategy, readAndParseSettings(readSettings))
+    readSettings: () => Option[String],
+    maxSimultaneousRebalance: Int,
+    nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext): DirectAllocationStrategy =
+    new DirectAllocationStrategy(
+      fallbackStrategy,
+      readAndParseSettings(readSettings),
+      maxSimultaneousRebalance,
+      nodesToDeallocate)
 
+  // entityId|ipAddress, entityId | ipAddress, entityId|ipAddress
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Map[ShardRegion.ShardId, String]] =
-  // entityId|ipAddress, entityId | ipAddress, entityId|ipAddress
     () => for {
       settings <- readSettings()
     } yield {
       ((settings split "," map (_.trim) filter (_.nonEmpty)) map { elem =>
-        (elem split "|" map (_.trim) filter (_.nonEmpty)).toList
+        (elem split "\\|" map (_.trim) filter (_.nonEmpty)).toList
       } collect {
         case k :: v :: Nil => (k, v)
       }).toMap

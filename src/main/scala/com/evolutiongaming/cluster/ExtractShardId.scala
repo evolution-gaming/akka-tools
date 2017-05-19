@@ -28,7 +28,14 @@ object ExtractShardId extends LazyLogging {
     case x: ShardedMsg => x.id
   }
 
-  def apply(typeName: String, config: Config): ShardRegion.ExtractShardId = {
+  def uniform(numberOfShards: Int): ShardRegion.ExtractShardId = {
+    case x: ShardedMsg =>
+      val id = x.id
+      val shardId = math.abs(id.hashCode % numberOfShards).toString
+      shardId
+  }
+
+  def static(typeName: String, config: Config): ShardRegion.ExtractShardId = {
     // "shardId: entityId1, entityId2, entityId3"
     val mappingsList = Try(config.get[List[String]](s"$typeName.id-shard-mapping")) getOrElse List.empty[String]
     val mappingsPairList = mappingsList flatMap { mapping =>

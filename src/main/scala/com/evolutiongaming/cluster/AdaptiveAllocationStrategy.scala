@@ -21,10 +21,11 @@ import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import com.codahale.metrics.MetricRegistry
 import com.typesafe.scalalogging.LazyLogging
+
 import scala.collection.concurrent.TrieMap
 import scala.collection.{immutable, mutable}
 import scala.compat.Platform
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 
 /**
@@ -34,20 +35,18 @@ import scala.concurrent.duration.FiniteDuration
   */
 class AdaptiveAllocationStrategy(
   typeName: String,
-  system: ActorSystem,
-  maxSimultaneousRebalance: Int,
   rebalanceThresholdPercent: Int,
   cleanupPeriod: FiniteDuration,
   metricRegistry: MetricRegistry,
   countControl: CountControl.Type,
   fallbackStrategy: ShardAllocationStrategy,
   proxy: ActorRef,
-  lowTrafficThreshold: Int = 10) extends ShardAllocationStrategy with LazyLogging {
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address],
+  lowTrafficThreshold: Int = 10)(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import AdaptiveAllocationStrategy._
-  import system.dispatcher
-
-  val addressHelper = AddressHelperExtension(system)
 
   private implicit val node = Cluster(system)
   private val selfHost = node.selfAddress.host getOrElse "127.0.0.1" replace (".", "_")
@@ -144,13 +143,9 @@ class AdaptiveAllocationStrategy(
   }
 
   /** Should be executed every rebalance-interval only on a node with ShardCoordinator */
-  def rebalance(
+  protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = Future {
-
-    def limitRebalance(f: => Set[ShardRegion.ShardId]): Set[ShardRegion.ShardId] =
-      if (rebalanceInProgress.size >= maxSimultaneousRebalance) Set.empty
-      else f take maxSimultaneousRebalance
 
     val entityToNodeCountersByType = entityToNodeCounters filterKeys { _.typeName == typeName }
 
@@ -210,7 +205,7 @@ class AdaptiveAllocationStrategy(
       shard <- notRebalancingShards if rebalanceShard(shard, regionAddress)
     } yield shard
 
-    val result = limitRebalance(shardsToRebalance.toSet)
+    val result = shardsToRebalance.toSet
 
     for (id <- shardsToClear -- result) {
       logger debug s"Shard $typeName#$id counter cleanup"
@@ -230,25 +225,26 @@ object AdaptiveAllocationStrategy {
 
   def apply(
     typeName: String,
-    maxSimultaneousRebalance: Int,
     rebalanceThresholdPercent: Int,
     cleanupPeriod: FiniteDuration,
     metricRegistry: MetricRegistry,
     countControl: CountControl.Type = CountControl.Empty,
-    fallbackStrategy: ShardAllocationStrategy = new RequesterAllocationStrategy)
-    (implicit system: ActorSystem): AdaptiveAllocationStrategy = {
+    fallbackStrategy: ShardAllocationStrategy,
+    maxSimultaneousRebalance: Int,
+    nodesToDeallocate: () => Set[Address])
+    (implicit system: ActorSystem, ec: ExecutionContext): AdaptiveAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
     val proxy = AdaptiveAllocationStrategyDistributedDataProxy(system).ref
     new AdaptiveAllocationStrategy(
       typeName = typeName,
-      system = system,
-      maxSimultaneousRebalance = maxSimultaneousRebalance,
       rebalanceThresholdPercent = rebalanceThresholdPercent,
       cleanupPeriod = cleanupPeriod,
       metricRegistry = metricRegistry,
-      countControl,
+      countControl = countControl,
       fallbackStrategy = fallbackStrategy,
-      proxy = proxy)
+      proxy = proxy,
+      maxSimultaneousRebalance = maxSimultaneousRebalance,
+      nodesToDeallocate = nodesToDeallocate)(system, ec)
   }
 
   case class EntityKey(typeName: String, id: ShardRegion.ShardId) {

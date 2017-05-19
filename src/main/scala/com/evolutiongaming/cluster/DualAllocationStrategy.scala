@@ -15,21 +15,21 @@
  */
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Address}
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class DualAllocationStrategy(
   baseAllocationStrategy: ShardAllocationStrategy,
   additionalAllocationStrategy: ShardAllocationStrategy,
-  readSettings: () => Option[Set[ShardRegion.ShardId]])
-  (implicit system: ActorSystem) extends ShardAllocationStrategy with LazyLogging {
-
-  import system.dispatcher
+  readSettings: () => Option[Set[ShardRegion.ShardId]],
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy with LazyLogging {
 
   @volatile
   private var additionalShardIds = Set.empty[ShardRegion.ShardId]
@@ -49,7 +49,7 @@ class DualAllocationStrategy(
       baseAllocationStrategy.allocateShard(requester, shardId, currentShardAllocations)
   }
 
-  def rebalance(
+  protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
 
@@ -76,7 +76,7 @@ class DualAllocationStrategy(
     for {
       additionalStrategyResult <- additionalStrategyResultFuture
       baseStrategyResult <- baseStrategyResultFuture
-    } yield baseStrategyResult ++ additionalStrategyResult
+    } yield baseStrategyResult ++ additionalStrategyResult -- rebalanceInProgress
   }
 }
 
@@ -84,12 +84,17 @@ object DualAllocationStrategy {
   def apply(
     baseAllocationStrategy: ShardAllocationStrategy,
     additionalAllocationStrategy: ShardAllocationStrategy,
-    readSettings: () => Option[String])(implicit system: ActorSystem): DualAllocationStrategy =
+    readSettings: () => Option[String],
+    maxSimultaneousRebalance: Int,
+    nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext): DualAllocationStrategy =
     new DualAllocationStrategy(
       baseAllocationStrategy,
       additionalAllocationStrategy,
-      readAndParseSettings(readSettings))
+      readAndParseSettings(readSettings),
+      maxSimultaneousRebalance,
+      nodesToDeallocate)
 
+  // shardId1, shardId2,shardId3
   private def readAndParseSettings(
     readSettings: () => Option[String]): () => Option[Set[ShardRegion.ShardId]] =
     () => for {

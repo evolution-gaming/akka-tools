@@ -15,40 +15,22 @@
  */
 package com.evolutiongaming.cluster
 
-import akka.TestDummyActorRef
 import akka.actor._
 import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator.{Changed, Subscribe, Update, WriteLocal}
 import akka.cluster.ddata.{ORMultiMap, PNCounter, PNCounterKey}
 import akka.cluster.sharding.ShardRegion.ShardId
-import akka.testkit.{DefaultTimeout, TestProbe}
+import akka.testkit.TestProbe
 import com.codahale.metrics.{Meter, MetricRegistry}
 import com.evolutiongaming.cluster.AdaptiveAllocationStrategy.{CounterKey, ValueData}
-import com.evolutiongaming.util.ActorSpec
-import com.typesafe.config.ConfigValueFactory
 import org.mockito.Mockito._
 import org.mockito.{Matchers => MM}
-import org.scalatest.concurrent.{Eventually, PatienceConfiguration, ScalaFutures}
-import org.scalatest.mockito.MockitoSugar
-import org.scalatest.{FlatSpec, Matchers, OptionValues}
 
 import scala.collection.immutable
 import scala.compat.Platform
 import scala.concurrent.duration._
 
-class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
-  with ActorSpec
-  with Matchers
-  with MockitoSugar
-  with OptionValues
-  with ScalaFutures
-  with Eventually
-  with PatienceConfiguration {
-
-  override implicit val patienceConfig = PatienceConfig(5.seconds, 500.millis)
-
-  override def config = super.config withValue
-    ("akka.actor.provider", ConfigValueFactory fromAnyRef "akka.cluster.ClusterActorRefProvider")
+class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySpec {
 
   import AdaptiveAllocationStrategyDistributedDataProxy._
 
@@ -309,14 +291,14 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     // limit rebalance to 1 - should rebalance 4
     val strategy1 = new AdaptiveAllocationStrategy(
       typeName = TypeName,
-      system = system,
-      maxSimultaneousRebalance = 1,
       rebalanceThresholdPercent = RebalanceThresholdPercent,
       cleanupPeriod = CleanupPeriod,
       metricRegistry = metricRegistry,
       countControl = CountControl.Increment,
-      fallbackStrategy = new RequesterAllocationStrategy,
-      proxy = proxy)
+      fallbackStrategy = fallbackStrategy,
+      proxy = proxy,
+      maxSimultaneousRebalance = 1,
+      nodesToDeallocate = () => Set.empty)
 
     val result5 = strategy1.rebalance(
       shardAllocations,
@@ -325,7 +307,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     result5 shouldBe Set(entityId4)
   }
 
-  abstract class Scope extends ActorScope with DefaultTimeout {
+  abstract class Scope extends AllocationStrategyScope {
 
     val MaxSimultaneousRebalance: Int = 10
     val RebalanceThresholdPercent: Int = 30
@@ -349,21 +331,6 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
     val expectedCounterKey = counterKey(entityId)
 
     val cleanupPeriodMillis = CleanupPeriod.toMillis
-
-    def mockedAddressRef(addr: Address): ActorRef = {
-      val rootPath = RootActorPath(addr)
-      val path = new ChildActorPath(rootPath, "test")
-      new TestDummyActorRef(path)
-    }
-
-    def mockedHostRef(host: String): ActorRef = {
-      val addr = Address(
-        protocol = "http",
-        system = "System",
-        host = host,
-        port = 2552)
-      mockedAddressRef(addr)
-    }
 
     val localAddressRef = mockedAddressRef(node.selfAddress)
     val anotherAddressRef1 = mockedHostRef("anotherAddress1")
@@ -435,16 +402,20 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends FlatSpec
 
     val proxy = system actorOf Props(new TestProxy)
 
+    val fallbackStrategy = new RequesterAllocationStrategy(
+      maxSimultaneousRebalance = MaxSimultaneousRebalance,
+      nodesToDeallocate = () => Set.empty)
+
     val strategy = new AdaptiveAllocationStrategy(
       typeName = TypeName,
-      system = system,
-      maxSimultaneousRebalance = MaxSimultaneousRebalance,
       rebalanceThresholdPercent = RebalanceThresholdPercent,
       cleanupPeriod = CleanupPeriod,
       metricRegistry = metricRegistry,
       countControl = CountControl.Increment,
-      fallbackStrategy = new RequesterAllocationStrategy,
-      proxy = proxy)
+      fallbackStrategy = fallbackStrategy,
+      proxy = proxy,
+      maxSimultaneousRebalance = MaxSimultaneousRebalance,
+      nodesToDeallocate = () => Set.empty)
 
     expectMsgPF() {
       case Subscribe(EntityToNodeCountersKey, _) =>
