@@ -178,9 +178,9 @@ class AdaptiveAllocationStrategy(
 
           // access from a non-home node is counted twice - on the non-home node and on the home node
           val correctedHomeValue =
-            if (homeValue > nonHomeValuesSum) homeValue - nonHomeValuesSum else homeValue
+            if (homeValue >= nonHomeValuesSum) homeValue - nonHomeValuesSum else homeValue
           val rebalanceThreshold =
-            (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) + lowTrafficThreshold
+            (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) max lowTrafficThreshold
 
           logger debug s"Shard:$shardId, " +
             s"homeValue:$homeValue, " +
