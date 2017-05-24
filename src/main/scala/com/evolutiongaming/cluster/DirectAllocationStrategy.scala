@@ -23,7 +23,6 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
-// this AllocationStrategy is for debug purposes only
 class DirectAllocationStrategy(
   fallbackStrategy: ShardAllocationStrategy,
   readSettings: () => Option[Map[ShardRegion.ShardId, String]],
@@ -92,7 +91,16 @@ class DirectAllocationStrategy(
 
     for {
       fallbackStrategyResult <- fallbackStrategy.rebalance(fallbackStrategyAllocation, rebalanceInProgress -- ourShards)
-    } yield shardsToReallocate ++ fallbackStrategyResult -- rebalanceInProgress
+    } yield {
+      val result = shardsToReallocate ++ fallbackStrategyResult -- rebalanceInProgress
+      if (result.nonEmpty) logger info s"Rebalance\n\t" +
+        s"current:${ currentShardAllocations.mkString("\n\t\t", "\n\t\t", "") }\n\t" +
+        s"shardsToReallocate:\t$shardsToReallocate\n\t" +
+        s"fallbackStrategyResult:\t$fallbackStrategyResult\n\t" +
+        s"rebalanceInProgress:\t$rebalanceInProgress\n\t" +
+        s"result:\t$result"
+      result
+    }
   }
 }
 

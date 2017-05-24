@@ -3,13 +3,14 @@ package com.evolutiongaming.cluster
 import akka.actor.{ActorRef, ActorSystem, Address}
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class ExtendedShardAllocationStrategy(
   implicit system: ActorSystem,
-  ec: ExecutionContext) extends ShardAllocationStrategy {
+  ec: ExecutionContext) extends ShardAllocationStrategy with LazyLogging {
 
   protected def nodesToDeallocate: () => Set[Address]
 
@@ -46,7 +47,12 @@ abstract class ExtendedShardAllocationStrategy(
 
     val result = for {
       shardsToRebalance <- shardsToRebalance
-    } yield limitRebalance(shardsToRebalance)
+    } yield {
+      val result = limitRebalance(shardsToRebalance)
+      logger debug s"Nodes to forcefully deallocate: $nodesToForcedDeallocation"
+      logger debug s"Final rebalance result: $result"
+      result
+    }
 
     result
   }
