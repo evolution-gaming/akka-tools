@@ -50,7 +50,7 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
     val strategy = new TestExtendedShardAllocationStrategy() {
 
       override val nodesToDeallocate = () => ignoredNodes
-      override val result = Set.empty
+      override val result: Set[ShardId] = Set.empty
     }
 
     strategy.allocateShard(mockedHostRef("Address2"), ShardIds(0), CurrentShardAllocations).futureValue shouldBe
