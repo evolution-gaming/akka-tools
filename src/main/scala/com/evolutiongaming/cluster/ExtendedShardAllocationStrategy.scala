@@ -18,9 +18,25 @@ abstract class ExtendedShardAllocationStrategy(
 
   protected def maxSimultaneousRebalance: Int
 
+  protected def doAllocate(
+    requester: ActorRef,
+    shardId: ShardRegion.ShardId,
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef]
+
   protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]]
+
+  final def allocateShard(
+    requester: ActorRef,
+    shardId: ShardRegion.ShardId,
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
+    val ignoredNodes = nodesToDeallocate()
+    val currentAllocationsMinusIgnored = currentShardAllocations filterKeys { k =>
+      !(ignoredNodes contains k.path.address)
+    }
+    doAllocate(requester, shardId, currentAllocationsMinusIgnored)
+  }
 
   final def rebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],

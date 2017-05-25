@@ -11,7 +11,6 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
   "ExtendedShardAllocationStrategy" should "pass through requests if no nodesToDeallocate, limit result size" in new Scope {
 
     val strategy = new TestExtendedShardAllocationStrategy() {
-      override val maxSimultaneousRebalance = 10
       override val nodesToDeallocate = () => Set.empty[Address]
       override val result = ShardIds.toSet -- RebalanceInProgress
     }
@@ -44,6 +43,26 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
     strategy.passedRebalanceInProgress shouldBe Some(RebalanceInProgress)
   }
 
+  it should "filter out nodesToDeallocate from nodes passed to doAllocate()" in new Scope {
+
+    val ignoredNodes = Set(testAddress("Address1"), testAddress("Address4"))
+
+    val strategy = new TestExtendedShardAllocationStrategy() {
+
+      override val nodesToDeallocate = () => ignoredNodes
+      override val result = Set.empty
+    }
+
+    strategy.allocateShard(mockedHostRef("Address2"), ShardIds(0), CurrentShardAllocations).futureValue shouldBe
+      mockedHostRef("Address2")
+
+    val filteredAllocation = CurrentShardAllocations filterKeys { k =>
+      !(ignoredNodes contains k.path.address)
+    }
+
+    strategy.passedCurrentShardAllocations shouldBe Some(filteredAllocation)
+  }
+
   abstract class Scope extends AllocationStrategyScope {
 
     val ShardIds = for {
@@ -70,21 +89,25 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
       var passedCurrentShardAllocations: Option[Map[ActorRef, immutable.IndexedSeq[ShardId]]] = None
       var passedRebalanceInProgress: Option[Set[ShardId]] = None
 
-      override def doRebalance(
+      override val maxSimultaneousRebalance = 10
+
+      protected def doRebalance(
         currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]],
         rebalanceInProgress: Set[ShardId]): Future[Set[ShardId]] = {
 
         passedCurrentShardAllocations = Some(currentShardAllocations)
         passedRebalanceInProgress = Some(rebalanceInProgress)
-
         Future successful result
       }
 
-      // not used in ExtendedShardAllocationStrategy
-      override def allocateShard(
+      protected def doAllocate(
         requester: ActorRef,
         shardId: ShardId,
-        currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = ???
+        currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = {
+
+        passedCurrentShardAllocations = Some(currentShardAllocations)
+        Future successful requester
+      }
     }
   }
 }

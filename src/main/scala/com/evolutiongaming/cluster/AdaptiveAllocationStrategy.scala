@@ -76,7 +76,7 @@ class AdaptiveAllocationStrategy(
     * (or on the requester node if no message statistic have been collected yet).
     * Also should allocate the shard during its rebalance.
     */
-  def allocateShard(
+  protected def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {

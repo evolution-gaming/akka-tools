@@ -41,7 +41,7 @@ class DualAllocationStrategySpec extends AllocationStrategySpec {
       val maxSimultaneousRebalance = 10
       val nodesToDeallocate = () => Set.empty[Address]
 
-      override def allocateShard(requester: ActorRef, shardId: ShardId,
+      protected def doAllocate(requester: ActorRef, shardId: ShardId,
         currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] =
       Future successful mockedHostRef("Address1")
 
@@ -55,7 +55,7 @@ class DualAllocationStrategySpec extends AllocationStrategySpec {
       val maxSimultaneousRebalance = 10
       val nodesToDeallocate = () => Set.empty[Address]
 
-      override def allocateShard(requester: ActorRef, shardId: ShardId,
+      protected def doAllocate(requester: ActorRef, shardId: ShardId,
         currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] =
         Future successful mockedHostRef("Address2")
 

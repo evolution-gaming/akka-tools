@@ -14,7 +14,7 @@ class RequesterAllocationStrategy(
   val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
   extends ExtendedShardAllocationStrategy {
 
-  def allocateShard(
+  protected def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] =

@@ -46,12 +46,12 @@ class DirectAllocationStrategy(
     }
   }
 
-  def allocateShard(
+  protected def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
-    val addresses = currentShardAllocations.keySet + requester
+    val addresses = currentShardAllocations.keySet
     val targetAddress = addressForShardId(shardId, addresses)
 
     targetAddress match {

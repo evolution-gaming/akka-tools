@@ -18,7 +18,7 @@ class SingleNodeAllocationStrategy(
     rebalanceThreshold = 10,
     maxSimultaneousRebalance = maxSimultaneousRebalance)
 
-  def allocateShard(requester: ActorRef, shardId: ShardId, current: Map[ActorRef, IndexedSeq[ShardId]]) = {
+  protected def doAllocate(requester: ActorRef, shardId: ShardId, current: Map[ActorRef, IndexedSeq[ShardId]]) = {
     def byAddress(address: Address) = current.keys.find { actor => actor.path.address == address }
     def requesterNode = byAddress(requester.path.address)
     val address = this.address

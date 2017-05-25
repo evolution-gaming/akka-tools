@@ -38,7 +38,7 @@ class DualAllocationStrategy(
     settings <- readSettings()
   } additionalShardIds = settings
 
-  def allocateShard(
+  protected def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
