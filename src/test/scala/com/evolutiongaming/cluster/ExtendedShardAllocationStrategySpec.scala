@@ -31,9 +31,14 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
       override val result = ShardIds.slice(24, 29).toSet -- RebalanceInProgress
     }
 
+    val mandatoryRebalance = (ShardIds.slice(10, 20) ++ ShardIds.slice(30, 40)).toSet
+
     strategy.rebalance(CurrentShardAllocations, RebalanceInProgress).futureValue shouldBe
-      (((ShardIds.slice(10, 20) ++ ShardIds.slice(30, 40) ++ ShardIds.slice(24, 29)).toSet --
-        RebalanceInProgress) take strategy.maxSimultaneousRebalance- RebalanceInProgress.size)
+      (((ShardIds.slice(24, 29).toSet --
+        RebalanceInProgress) take
+        strategy.maxSimultaneousRebalance - RebalanceInProgress.size - mandatoryRebalance.size) ++
+        mandatoryRebalance -- RebalanceInProgress)
+
 
     strategy.passedCurrentShardAllocations shouldBe Some(CurrentShardAllocations)
     strategy.passedRebalanceInProgress shouldBe Some(RebalanceInProgress)

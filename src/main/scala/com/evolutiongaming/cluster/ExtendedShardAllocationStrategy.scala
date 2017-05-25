@@ -26,31 +26,27 @@ abstract class ExtendedShardAllocationStrategy(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
 
-    def limitRebalance(f: => Set[ShardRegion.ShardId]): Set[ShardRegion.ShardId] =
-      if (rebalanceInProgress.size >= maxSimultaneousRebalance) Set.empty
-      else f take maxSimultaneousRebalance - rebalanceInProgress.size
+    def limitRebalance(f: => Set[ShardRegion.ShardId], rebalanceInProgressSize: Int): Set[ShardRegion.ShardId] =
+      if (rebalanceInProgressSize >= maxSimultaneousRebalance) Set.empty
+      else f take maxSimultaneousRebalance - rebalanceInProgressSize
 
     val nodesToForcedDeallocation = nodesToDeallocate()
 
-    val shardsToRebalance: Future[Set[ShardRegion.ShardId]] =
-      if (nodesToForcedDeallocation.isEmpty) {
-        doRebalance(currentShardAllocations, rebalanceInProgress)
-      } else {
-        val shardsToForcedDeallocation = (for {
-          (k, v) <- currentShardAllocations if nodesToForcedDeallocation contains addressHelper.toGlobal(k.path.address)
-        } yield v).flatten.toSet -- rebalanceInProgress
-
-        for {
-          doRebalanceResult <- doRebalance(currentShardAllocations, rebalanceInProgress -- shardsToForcedDeallocation)
-        } yield shardsToForcedDeallocation ++ doRebalanceResult
-      }
+    def shardsToForcedDeallocation: Set[ShardRegion.ShardId] =
+      if (nodesToForcedDeallocation.isEmpty) Set.empty
+      else (for {
+        (k, v) <- currentShardAllocations if nodesToForcedDeallocation contains addressHelper.toGlobal(k.path.address)
+      } yield v).flatten.toSet -- rebalanceInProgress
 
     val result = for {
-      shardsToRebalance <- shardsToRebalance
+      doRebalanceResult <- doRebalance(currentShardAllocations, rebalanceInProgress)
+      forcedResult = shardsToForcedDeallocation
     } yield {
-      val result = limitRebalance(shardsToRebalance)
-      logger debug s"Nodes to forcefully deallocate: $nodesToForcedDeallocation"
-      logger debug s"Final rebalance result: $result"
+      val result = forcedResult ++
+        limitRebalance(doRebalanceResult, rebalanceInProgress.size + forcedResult.size) -- rebalanceInProgress
+      if (nodesToForcedDeallocation.nonEmpty) logger debug s"Nodes to forcefully deallocate: $nodesToForcedDeallocation"
+      if (forcedResult.nonEmpty) logger debug s"Shards to forcefully deallocate: $forcedResult"
+      if (result.nonEmpty) logger debug s"Final rebalance result: $result"
       result
     }
 
