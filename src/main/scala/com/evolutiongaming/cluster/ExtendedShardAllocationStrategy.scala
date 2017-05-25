@@ -33,7 +33,7 @@ abstract class ExtendedShardAllocationStrategy(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
     val ignoredNodes = nodesToDeallocate()
     val currentAllocationsMinusIgnored = currentShardAllocations filterKeys { k =>
-      !(ignoredNodes contains k.path.address)
+      !(ignoredNodes contains addressHelper.toGlobal(k.path.address))
     }
     doAllocate(requester, shardId, currentAllocationsMinusIgnored)
   }
