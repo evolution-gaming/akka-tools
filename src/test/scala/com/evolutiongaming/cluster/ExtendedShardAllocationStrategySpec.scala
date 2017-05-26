@@ -43,26 +43,6 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
     strategy.passedRebalanceInProgress shouldBe Some(RebalanceInProgress)
   }
 
-  it should "filter out nodesToDeallocate from nodes passed to doAllocate()" in new Scope {
-
-    val ignoredNodes = Set(testAddress("Address1"), testAddress("Address4"))
-
-    val strategy = new TestExtendedShardAllocationStrategy() {
-
-      override val nodesToDeallocate = () => ignoredNodes
-      override val result: Set[ShardId] = Set.empty
-    }
-
-    strategy.allocateShard(mockedHostRef("Address2"), ShardIds(0), CurrentShardAllocations).futureValue shouldBe
-      mockedHostRef("Address2")
-
-    val filteredAllocation = CurrentShardAllocations filterKeys { k =>
-      !(ignoredNodes contains k.path.address)
-    }
-
-    strategy.passedCurrentShardAllocations shouldBe Some(filteredAllocation)
-  }
-
   abstract class Scope extends AllocationStrategyScope {
 
     val ShardIds = for {

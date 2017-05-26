@@ -17,8 +17,10 @@ class RequesterAllocationStrategy(
   protected def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] =
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
+    logger debug s"Allocating $shardId on requester: $requester"
     Future successful requester
+  }
 
   protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],

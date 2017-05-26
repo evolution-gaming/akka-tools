@@ -42,7 +42,7 @@ class DirectAllocationStrategy(
     addresses: Set[ActorRef]): Option[ActorRef] = {
 
     shardIdToAddress get shardId flatMap { ipAddress =>
-      addresses find (x => addressHelper.toGlobal(x.path.address).host contains ipAddress)
+      addresses find (ref => (addressHelper toGlobal ref.path.address).host contains ipAddress)
     }
   }
 
@@ -51,7 +51,10 @@ class DirectAllocationStrategy(
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
-    val addresses = currentShardAllocations.keySet
+    val ignoredNodes = nodesToDeallocate()
+    val addresses = currentShardAllocations.keySet filterNot { ref =>
+      ignoredNodes contains (addressHelper toGlobal ref.path.address)
+    }
     val targetAddress = addressForShardId(shardId, addresses)
 
     targetAddress match {

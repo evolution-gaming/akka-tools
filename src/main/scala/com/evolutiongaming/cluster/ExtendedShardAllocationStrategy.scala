@@ -30,13 +30,8 @@ abstract class ExtendedShardAllocationStrategy(
   final def allocateShard(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
-    val ignoredNodes = nodesToDeallocate()
-    val currentAllocationsMinusIgnored = currentShardAllocations filterKeys { k =>
-      !(ignoredNodes contains addressHelper.toGlobal(k.path.address))
-    }
-    doAllocate(requester, shardId, currentAllocationsMinusIgnored)
-  }
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] =
+    doAllocate(requester, shardId, currentShardAllocations)
 
   final def rebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
