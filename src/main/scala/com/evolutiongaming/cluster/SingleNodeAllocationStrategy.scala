@@ -23,7 +23,7 @@ class SingleNodeAllocationStrategy(
     val currentNotIgnored = current.keySet filterNot { ref =>
       ignoredNodes contains (addressHelper toGlobal ref.path.address)
     }
-    def byAddress(address: Address) = current.keys.find { actor => actor.path.address == address }
+    def byAddress(address: Address) = currentNotIgnored.find { actor => actor.path.address == address }
     def requesterNode = byAddress(requester.path.address)
     val address = this.address
     def masterNode = for {
