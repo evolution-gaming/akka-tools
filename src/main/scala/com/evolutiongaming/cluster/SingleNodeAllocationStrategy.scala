@@ -19,11 +19,8 @@ class SingleNodeAllocationStrategy(
     maxSimultaneousRebalance = maxSimultaneousRebalance)
 
   protected def doAllocate(requester: ActorRef, shardId: ShardId, current: Map[ActorRef, IndexedSeq[ShardId]]) = {
-    val ignoredNodes = nodesToDeallocate()
-    val currentNotIgnored = current.keySet filterNot { ref =>
-      ignoredNodes contains (addressHelper toGlobal ref.path.address)
-    }
-    def byAddress(address: Address) = currentNotIgnored.find { actor => actor.path.address == address }
+    val activeNodes = notIgnoredNodes(current)
+    def byAddress(address: Address) = activeNodes find { actor => actor.path.address == address }
     def requesterNode = byAddress(requester.path.address)
     val address = this.address
     def masterNode = for {
@@ -40,7 +37,7 @@ class SingleNodeAllocationStrategy(
     current: Map[ActorRef, IndexedSeq[ShardId]],
     rebalanceInProgress: Set[ShardId]): Future[Set[ShardRegion.ShardId]]= {
     val result = for {
-      address <- address.toIterable
+      address <- address.toIterable filterNot nodesToDeallocate().contains
       (actor, shards) <- current if actor.path.address != address
       shard <- shards
     } yield shard

@@ -71,15 +71,16 @@ class AdaptiveAllocationStrategy(
       shardId
   }
 
-  /**
-    * Allocates the shard on a node with the most client messages received from
-    * (or on the requester node if no message statistic have been collected yet).
-    * Also should allocate the shard during its rebalance.
-    */
-  protected def doAllocate(
-    requester: ActorRef,
+  private def notIgnoredNodesStr(
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Set[String] = {
+    notIgnoredNodes(currentShardAllocations) map { ref =>
+      (addressHelper toGlobal ref.path.address).toString
+    }
+  }
+
+  private def nodeToAllocateShard(
     shardId: ShardRegion.ShardId,
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Option[ActorRef] = {
 
     def maxOption(nodeCounters: Set[(CounterKey, BigInt)]): Option[(CounterKey, BigInt)] =
       if (nodeCounters.isEmpty) None else Some(nodeCounters maxBy { case (_, cnt) => cnt })
@@ -109,18 +110,20 @@ class AdaptiveAllocationStrategy(
     }
 
     def toNode(correctedMaxNodeCounterKey: CounterKey): Option[ActorRef] = {
-      val addressFromCounterKey = correctedMaxNodeCounterKey.address
       val correctedMaxNodeAddress = currentShardAllocations.keys find { key =>
-        (addressHelper toGlobal key.path.address).toString == addressFromCounterKey
+        (addressHelper toGlobal key.path.address).toString == correctedMaxNodeCounterKey.address
       }
       correctedMaxNodeAddress
     }
 
     val entityKey = EntityKey(typeName, shardId)
-    val proposedNode = for {
+
+    val activeNodes = notIgnoredNodesStr(currentShardAllocations)
+
+    for {
       counterKeys <- entityToNodeCounters get entityKey
       nodeCounters = for {
-        counterKey <- counterKeys
+        counterKey <- counterKeys if activeNodes contains counterKey.address
         v <- counters get counterKey
       } yield (counterKey, v.value)
       (maxNodeCounterKey, maxNodeValue) <- maxNode(nodeCounters)
@@ -128,6 +131,18 @@ class AdaptiveAllocationStrategy(
       if maxNodeValue >= currentShardAllocations.keys.size
       toNode <- toNode(correctedMaxNodeCounterKey)
     } yield toNode
+  }
+
+  /**
+    * Allocates the shard on a node with the most client messages received from
+    * (or on the requester node if no message statistic have been collected yet).
+    */
+  protected def doAllocate(
+    requester: ActorRef,
+    shardId: ShardRegion.ShardId,
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
+
+    val proposedNode = nodeToAllocateShard(shardId, currentShardAllocations)
 
     proposedNode match {
       case Some(toNode) =>
@@ -151,11 +166,13 @@ class AdaptiveAllocationStrategy(
 
     val shardsToClear = mutable.Set.empty[ShardRegion.ShardId]
 
+    val activeNodes = notIgnoredNodesStr(currentShardAllocations)
+
     def rebalanceShard(shardId: ShardRegion.ShardId, regionAddress: String): Boolean = {
       val entityKey = EntityKey(typeName, shardId)
       entityToNodeCountersByType get entityKey match {
         case Some(counterKeys) =>
-          val cnts = counterKeys flatMap { counterKey =>
+          val cnts = counterKeys filter (activeNodes contains _.address) flatMap { counterKey =>
             val isHome = counterKey.address == regionAddress
             counters get counterKey map { v =>
               (isHome, v.value, v.cleared)
@@ -190,7 +207,8 @@ class AdaptiveAllocationStrategy(
             s"nonHomeValuesSum:$nonHomeValuesSum, " +
             s"rebalanceThreshold:$rebalanceThreshold"
 
-          val rebalance = maxNonHomeValue > correctedHomeValue + rebalanceThreshold
+          val rebalance = maxNonHomeValue > correctedHomeValue + rebalanceThreshold &&
+            nodeToAllocateShard(shardId, currentShardAllocations).isDefined // we should rebalance only shards we can re-allocate
           if (rebalance && logger.underlying.isDebugEnabled) metricRegistry.meter(s"sharding.$typeName.rebalance.$shardId").mark()
           rebalance
 

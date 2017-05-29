@@ -51,11 +51,8 @@ class DirectAllocationStrategy(
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
-    val ignoredNodes = nodesToDeallocate()
-    val addresses = currentShardAllocations.keySet filterNot { ref =>
-      ignoredNodes contains (addressHelper toGlobal ref.path.address)
-    }
-    val targetAddress = addressForShardId(shardId, addresses)
+    val activeNodes = notIgnoredNodes(currentShardAllocations)
+    val targetAddress = addressForShardId(shardId, activeNodes)
 
     targetAddress match {
       case Some(address) =>
@@ -77,11 +74,12 @@ class DirectAllocationStrategy(
     } shardIdToAddress = settings
 
     val ourShards = shardIdToAddress.keySet
+    val activeNodes = notIgnoredNodes(currentShardAllocations)
     val currentShardAllocationsOptimized = currentShardAllocations mapValues (_.toSet)
 
     val shardsToReallocate = for {
       shardId <- ourShards
-      targetAddress <- addressForShardId(shardId, currentShardAllocations.keySet)
+      targetAddress <- addressForShardId(shardId, activeNodes)
       currentAddress <- currentShardAllocationsOptimized collectFirst {
         case (address, shards) if shards contains shardId => address
       }

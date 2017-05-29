@@ -18,6 +18,14 @@ abstract class ExtendedShardAllocationStrategy(
 
   protected def maxSimultaneousRebalance: Int
 
+  protected def notIgnoredNodes(
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Set[ActorRef] = {
+    val ignoredNodes = nodesToDeallocate()
+    currentShardAllocations.keySet filterNot { ref =>
+      ignoredNodes contains (addressHelper toGlobal ref.path.address)
+    }
+  }
+
   protected def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
