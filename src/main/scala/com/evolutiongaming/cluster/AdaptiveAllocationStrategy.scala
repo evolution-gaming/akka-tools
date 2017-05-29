@@ -111,7 +111,7 @@ class AdaptiveAllocationStrategy(
     def toNode(correctedMaxNodeCounterKey: CounterKey): Option[ActorRef] = {
       val addressFromCounterKey = correctedMaxNodeCounterKey.address
       val correctedMaxNodeAddress = currentShardAllocations.keys find { key =>
-        key.toString contains addressFromCounterKey
+        (addressHelper toGlobal key.path.address).toString == addressFromCounterKey
       }
       correctedMaxNodeAddress
     }
@@ -200,7 +200,7 @@ class AdaptiveAllocationStrategy(
 
     val shardsToRebalance = for {
       (region, regionShards) <- currentShardAllocations
-      regionAddress = addressHelper.toGlobal(region.path.address).toString
+      regionAddress = (addressHelper toGlobal region.path.address).toString
       notRebalancingShards = regionShards.toSet -- rebalanceInProgress
       shard <- notRebalancingShards if rebalanceShard(shard, regionAddress)
     } yield shard

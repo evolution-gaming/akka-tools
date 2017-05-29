@@ -46,7 +46,7 @@ abstract class ExtendedShardAllocationStrategy(
     def shardsToForcedDeallocation: Set[ShardRegion.ShardId] =
       if (nodesToForcedDeallocation.isEmpty) Set.empty
       else (for {
-        (k, v) <- currentShardAllocations if nodesToForcedDeallocation contains addressHelper.toGlobal(k.path.address)
+        (k, v) <- currentShardAllocations if nodesToForcedDeallocation contains (addressHelper toGlobal k.path.address)
       } yield v).flatten.toSet -- rebalanceInProgress
 
     val result = for {

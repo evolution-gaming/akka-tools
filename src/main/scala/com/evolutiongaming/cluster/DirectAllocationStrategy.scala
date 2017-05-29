@@ -85,7 +85,7 @@ class DirectAllocationStrategy(
       currentAddress <- currentShardAllocationsOptimized collectFirst {
         case (address, shards) if shards contains shardId => address
       }
-      if currentAddress != targetAddress
+      if (addressHelper toGlobal currentAddress.path.address) != (addressHelper toGlobal targetAddress.path.address)
     } yield shardId
 
     val fallbackStrategyAllocation = currentShardAllocationsOptimized map {
