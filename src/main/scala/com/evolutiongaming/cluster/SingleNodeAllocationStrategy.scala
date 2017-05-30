@@ -1,7 +1,6 @@
 package com.evolutiongaming.cluster
 
 import akka.actor.{ActorRef, ActorSystem, Address}
-import akka.cluster.sharding.ShardCoordinator.LeastShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.ShardId
 
@@ -14,10 +13,6 @@ class SingleNodeAllocationStrategy(
   val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
   extends ExtendedShardAllocationStrategy {
 
-  private lazy val leastShardAllocation = new LeastShardAllocationStrategy(
-    rebalanceThreshold = 10,
-    maxSimultaneousRebalance = maxSimultaneousRebalance)
-
   protected def doAllocate(requester: ActorRef, shardId: ShardId, current: Map[ActorRef, IndexedSeq[ShardId]]) = {
     val activeNodes = notIgnoredNodes(current)
     def byAddress(address: Address) = activeNodes find { actor => actor.path.address == address }
@@ -27,10 +22,19 @@ class SingleNodeAllocationStrategy(
       a <- address
       n <- byAddress(a)
     } yield n
+    def leastShards(current: Map[ActorRef, IndexedSeq[ShardId]]) = {
+      val (regionWithLeastShards, _) = current minBy { case (_, v) => v.size }
+      regionWithLeastShards
+    }
+    def leastShardActive = {
+      val currentActiveNodes = current filterKeys { ref => activeNodes contains ref }
+      if (currentActiveNodes.isEmpty) None
+      else Some(leastShards(currentActiveNodes))
+    }
 
-    val result = masterNode orElse requesterNode
+    val result = masterNode orElse requesterNode orElse leastShardActive getOrElse leastShards(current)
 
-    result map { Future.successful } getOrElse leastShardAllocation.allocateShard(requester, shardId, current)
+    Future successful result
   }
 
   protected def doRebalance(
