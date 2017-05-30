@@ -19,6 +19,7 @@ import akka.actor._
 import akka.cluster.{Cluster, UniqueAddress}
 import akka.cluster.ddata.Replicator.{Changed, Subscribe, Update, WriteLocal}
 import akka.cluster.ddata.{ORMultiMap, PNCounter, PNCounterKey}
+import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.ShardId
 import akka.testkit.TestProbe
 import com.codahale.metrics.{Meter, MetricRegistry}
@@ -28,6 +29,7 @@ import org.mockito.{Matchers => MM}
 
 import scala.collection.immutable
 import scala.compat.Platform
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySpec {
@@ -407,9 +409,19 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
 
     val proxy = system actorOf Props(new TestProxy)
 
-    val fallbackStrategy = new RequesterAllocationStrategy(
-      maxSimultaneousRebalance = MaxSimultaneousRebalance,
-      nodesToDeallocate = () => Set.empty)
+    val fallbackStrategy = new ExtendedShardAllocationStrategy {
+      val maxSimultaneousRebalance = MaxSimultaneousRebalance
+      val nodesToDeallocate = () => Set.empty[Address]
+
+      protected def doAllocate(requester: ActorRef, shardId: ShardId,
+        currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] =
+        Future successful requester
+
+      override protected def doRebalance(
+        currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
+        rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] =
+        Future successful Set.empty
+    }
 
     val strategy = new AdaptiveAllocationStrategy(
       typeName = TypeName,
