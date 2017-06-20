@@ -35,7 +35,10 @@ object ExtractShardId extends LazyLogging {
       shardId
   }
 
-  def static(typeName: String, config: Config): ShardRegion.ExtractShardId = {
+  def static(
+    typeName: String,
+    config: Config,
+    fallback: ShardRegion.ExtractShardId = identity): ShardRegion.ExtractShardId = {
     // "shardId: entityId1, entityId2, entityId3"
     val mappingsList = Try(config.get[List[String]](s"$typeName.id-shard-mapping")) getOrElse List.empty[String]
     val mappingsPairList = mappingsList flatMap { mapping =>
@@ -55,7 +58,7 @@ object ExtractShardId extends LazyLogging {
         val entityId = x.id
         mappings get entityId match {
           case Some(shardId) => shardId
-          case None          => entityId // shardId == entityId for new entities
+          case None          => fallback(entityId)
         }
     }
     result
