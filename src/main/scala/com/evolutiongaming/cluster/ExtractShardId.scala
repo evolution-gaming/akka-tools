@@ -58,7 +58,7 @@ object ExtractShardId extends LazyLogging {
         val entityId = x.id
         mappings get entityId match {
           case Some(shardId) => shardId
-          case None          => fallback(entityId)
+          case None          => fallback(x)
         }
     }
     result
