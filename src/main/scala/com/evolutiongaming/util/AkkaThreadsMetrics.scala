@@ -24,12 +24,14 @@ class AkkaThreadsMetrics(registry: MetricRegistry, interval: FiniteDuration = 30
       }
 
       val count = derivative { _.count }
+      registry remove s"$name.threads.all"
       registry.register(s"$name.threads.all", count)
 
       for {
         state <- Thread.State.values()
       } {
         val count = derivative { _.counts.getOrElse(state, 0L) }
+        registry remove s"$name.threads.${ state.toString.toLowerCase }"
         registry.register(s"$name.threads.${ state.toString.toLowerCase }", count)
       }
     }
