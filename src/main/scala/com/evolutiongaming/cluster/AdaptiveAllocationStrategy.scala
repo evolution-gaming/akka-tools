@@ -85,11 +85,6 @@ class AdaptiveAllocationStrategy(
     def maxOption(nodeCounters: Set[(CounterKey, BigInt)]): Option[(CounterKey, BigInt)] =
       if (nodeCounters.isEmpty) None else Some(nodeCounters maxBy { case (_, cnt) => cnt })
 
-    def maxNode(nodeCounters: Set[(CounterKey, BigInt)]): Option[(CounterKey, BigInt)] = {
-      clear(typeName, shardId)
-      maxOption(nodeCounters)
-    }
-
     def correctedMaxNode(
       nodeCounters: Set[(CounterKey, BigInt)],
       maxNodeCounterKey: CounterKey,
@@ -126,7 +121,7 @@ class AdaptiveAllocationStrategy(
         counterKey <- counterKeys if activeNodes contains counterKey.address
         v <- counters get counterKey
       } yield (counterKey, v.value)
-      (maxNodeCounterKey, maxNodeValue) <- maxNode(nodeCounters)
+      (maxNodeCounterKey, maxNodeValue) <- maxOption(nodeCounters)
       (correctedMaxNodeCounterKey, _) <- correctedMaxNode(nodeCounters, maxNodeCounterKey, maxNodeValue)
       if maxNodeValue >= currentShardAllocations.keys.size
       toNode <- toNode(correctedMaxNodeCounterKey)
@@ -143,6 +138,8 @@ class AdaptiveAllocationStrategy(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
     val proposedNode = nodeToAllocateShard(shardId, currentShardAllocations)
+
+    clear(typeName, shardId)
 
     proposedNode match {
       case Some(toNode) =>
@@ -161,6 +158,9 @@ class AdaptiveAllocationStrategy(
   protected def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = Future {
+
+    logger debug
+      s"doRebalance $typeName: currentShardAllocations = $currentShardAllocations, rebalanceInProgress = $rebalanceInProgress"
 
     val entityToNodeCountersByType = entityToNodeCounters filterKeys { _.typeName == typeName }
 
