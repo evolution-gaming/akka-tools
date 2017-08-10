@@ -12,9 +12,9 @@ organizationHomepage := Some(url("http://evolutiongaming.com"))
 
 bintrayOrganization := Some("evolutiongaming")
 
-scalaVersion := "2.12.2"
+scalaVersion := "2.12.3"
 
-crossScalaVersions := Seq("2.12.2", "2.11.11")
+crossScalaVersions := Seq("2.12.3", "2.11.11")
 
 releaseCrossBuild := true
 
@@ -33,7 +33,7 @@ scalacOptions ++= Seq(
 
 scalacOptions in (Compile,doc) ++= Seq("-no-link-warnings")
 
-val AkkaVersion = "2.5.1"
+val AkkaVersion = "2.5.3"
 
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
