@@ -15,10 +15,10 @@
  */
 package com.evolutiongaming.cluster
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ExtendedActorSystem, Extension, ExtensionId, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ExtendedActorSystem, ExtensionId, Props}
 import akka.cluster.Cluster
-import akka.cluster.ddata._
 import akka.cluster.ddata.Replicator._
+import akka.cluster.ddata._
 
 import scala.compat.Platform
 
@@ -30,12 +30,12 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
   implicit lazy val node = Cluster(context.system)
   private val selfAddress = node.selfAddress.toString
   lazy val replicator: ActorRef = DistributedData(context.system).replicator
+  private val emptyMap = ORMultiMap.empty[String, String]
 
   replicator ! Subscribe(EntityToNodeCountersKey, self)
 
   def sendBindingUpdate(entityKey: String, counterKey: String): Unit = {
-    val empty = ORMultiMap.empty[String, String]
-    replicator ! Update(EntityToNodeCountersKey, empty, WriteLocal)(_ addBinding(entityKey, counterKey))
+    replicator ! Update(EntityToNodeCountersKey, emptyMap, WriteLocal)(_ addBinding(entityKey, counterKey))
   }
 
   def receive: Receive = {
@@ -54,11 +54,11 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
         case Some(counterKeys) if counterKeys contains counterKey =>
 
         case Some(counterKeys)                                    =>
-          entityToNodeCounters = entityToNodeCounters + (entityKey -> (counterKeys + counterKey))
+          entityToNodeCounters += (entityKey -> (counterKeys + counterKey))
           sendBindingUpdate(entityKey.toString, counterKey.toString)
 
         case None                                                 =>
-          entityToNodeCounters = entityToNodeCounters + (entityKey -> Set(counterKey))
+          entityToNodeCounters += (entityKey -> Set(counterKey))
           sendBindingUpdate(entityKey.toString, counterKey.toString)
       }
 
@@ -119,13 +119,11 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
   }
 }
 
-class ActorRefExtension(val ref: ActorRef) extends Extension
-
 object AdaptiveAllocationStrategyDistributedDataProxy extends ExtensionId[ActorRefExtension] {
   override def createExtension(system: ExtendedActorSystem): ActorRefExtension =
     new ActorRefExtension(system actorOf Props[AdaptiveAllocationStrategyDistributedDataProxy])
 
-  // DData key of the entityToNodeCounterIds map
+  // DData key of entityToNodeCounters map
   private[cluster] val EntityToNodeCountersKey: ORMultiMapKey[String, String] =
     ORMultiMapKey[String, String]("EntityToNodeCounters")
 }
