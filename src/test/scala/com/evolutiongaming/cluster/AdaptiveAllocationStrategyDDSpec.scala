@@ -32,9 +32,9 @@ import scala.compat.Platform
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySpec {
+class AdaptiveAllocationStrategyDDSpec extends AllocationStrategySpec {
 
-  import AdaptiveAllocationStrategyDistributedDataProxy._
+  import AdaptiveAllocationStrategyDDProxy._
 
   "AdaptiveAllocationStrategy" should "correctly increment and clear a counter" in new Scope {
 
@@ -109,7 +109,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
     }
   }
 
-  it should "allocate a shard on the requester node if the counters is empty" in new Scope {
+  it should "allocate a shard using the fallback strategy if the counters is empty" in new Scope {
 
     val requester = TestProbe().testActor
 
@@ -155,7 +155,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
       currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe anotherAddressRef2
   }
 
-  it should "allocate a shard on a node (local) with the biggest counter value (respect cummulative home node counter)" in new Scope {
+  it should "allocate a shard on a node (local) with the biggest counter value (respect cumulative home node counter)" in new Scope {
 
     proxy ! Changed(EntityToNodeCountersKey)(map)
 
@@ -173,7 +173,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
       currentShardAllocations = noShard1ShardAllocations).futureValue shouldBe localAddressRef
   }
 
-  it should "allocate a shard on a node (remote) with the biggest counter value (respect cummulative home node counter)" in new Scope {
+  it should "allocate a shard on a node (remote) with the biggest counter value (respect cumulative home node counter)" in new Scope {
 
     proxy ! Changed(EntityToNodeCountersKey)(map)
 
@@ -440,7 +440,7 @@ class AdaptiveAllocationStrategyDistributedDataSpec extends AllocationStrategySp
       case Subscribe(EntityToNodeCountersKey, _) =>
     }
 
-    class TestProxy extends AdaptiveAllocationStrategyDistributedDataProxy {
+    class TestProxy extends AdaptiveAllocationStrategyDDProxy {
       override lazy val replicator = testActor
       override implicit lazy val node = clusterNode
     }

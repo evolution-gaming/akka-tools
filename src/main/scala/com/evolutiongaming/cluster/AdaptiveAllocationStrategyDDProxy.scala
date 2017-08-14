@@ -22,10 +22,10 @@ import akka.cluster.ddata._
 
 import scala.compat.Platform
 
-class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLogging {
+class AdaptiveAllocationStrategyDDProxy extends Actor with ActorLogging {
 
   import AdaptiveAllocationStrategy._
-  import AdaptiveAllocationStrategyDistributedDataProxy._
+  import AdaptiveAllocationStrategyDDProxy._
 
   implicit lazy val node = Cluster(context.system)
   private val selfAddress = node.selfAddress.toString
@@ -119,9 +119,9 @@ class AdaptiveAllocationStrategyDistributedDataProxy extends Actor with ActorLog
   }
 }
 
-object AdaptiveAllocationStrategyDistributedDataProxy extends ExtensionId[ActorRefExtension] {
+object AdaptiveAllocationStrategyDDProxy extends ExtensionId[ActorRefExtension] {
   override def createExtension(system: ExtendedActorSystem): ActorRefExtension =
-    new ActorRefExtension(system actorOf Props[AdaptiveAllocationStrategyDistributedDataProxy])
+    new ActorRefExtension(system actorOf Props[AdaptiveAllocationStrategyDDProxy])
 
   // DData key of entityToNodeCounters map
   private[cluster] val EntityToNodeCountersKey: ORMultiMapKey[String, String] =

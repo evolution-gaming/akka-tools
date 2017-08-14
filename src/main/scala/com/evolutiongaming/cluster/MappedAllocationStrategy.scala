@@ -46,10 +46,10 @@ class MappedAllocationStrategy(
     logger debug
       s"rebalance $typeName: currentShardAllocations = $currentShardAllocations, rebalanceInProgress = $rebalanceInProgress"
 
-    val result = (for {
+    val result = ((for {
       (ref, shards) <- currentShardAllocations
       shardId <- shards if !(shardToRegionMapping get EntityKey(typeName, shardId) contains ref)
-    } yield shardId).toSet
+    } yield shardId).toSet -- rebalanceInProgress) take maxSimultaneousRebalance
 
     if (result.nonEmpty) logger info s"Rebalance $typeName\n\t" +
       s"current:${ currentShardAllocations.mkString("\n\t\t", "\n\t\t", "") }\n\t" +
@@ -68,7 +68,7 @@ object MappedAllocationStrategy {
     maxSimultaneousRebalance: Int)
     (implicit system: ActorSystem): MappedAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
-    val proxy = MappedAllocationStrategyDistributedDataProxy(system).ref
+    val proxy = MappedAllocationStrategyDDProxy(system).ref
     new MappedAllocationStrategy(
       typeName = typeName,
       fallbackStrategy = fallbackStrategy,
@@ -92,7 +92,6 @@ object MappedAllocationStrategy {
   case class UpdateMapping(typeName: String, id: ShardRegion.ShardId, regionRef: ActorRef)
   case class Clear(typeName: String, id: ShardRegion.ShardId)
 
-  // TODO: check for thread-safety
   @volatile
   private[cluster] var shardToRegionMapping: Map[EntityKey, ActorRef] = Map.empty
 }

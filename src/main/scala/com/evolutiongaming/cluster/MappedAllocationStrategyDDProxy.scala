@@ -20,17 +20,16 @@ import akka.cluster.Cluster
 import akka.cluster.ddata.Replicator._
 import akka.cluster.ddata._
 
-class MappedAllocationStrategyDistributedDataProxy extends Actor with ActorLogging {
+class MappedAllocationStrategyDDProxy extends Actor with ActorLogging {
 
   import MappedAllocationStrategy._
-  import MappedAllocationStrategyDistributedDataProxy._
+  import MappedAllocationStrategyDDProxy._
 
   implicit lazy val node = Cluster(context.system)
   lazy val replicator: ActorRef = DistributedData(context.system).replicator
   private val emptyMap = LWWMap.empty[String, ActorRef]
 
-    replicator ! Subscribe(MappingKey, self)
-
+  replicator ! Subscribe(MappingKey, self)
 
   def receive: Receive = {
     case UpdateMapping(typeName, id, regionRef) =>
@@ -60,9 +59,9 @@ class MappedAllocationStrategyDistributedDataProxy extends Actor with ActorLoggi
   }
 }
 
-object MappedAllocationStrategyDistributedDataProxy extends ExtensionId[ActorRefExtension] {
+object MappedAllocationStrategyDDProxy extends ExtensionId[ActorRefExtension] {
   override def createExtension(system: ExtendedActorSystem): ActorRefExtension =
-    new ActorRefExtension(system actorOf Props[MappedAllocationStrategyDistributedDataProxy])
+    new ActorRefExtension(system actorOf Props[MappedAllocationStrategyDDProxy])
 
   // DData key of ShardToRegionMapping map
   private[cluster] val MappingKey: LWWMapKey[String, ActorRef] =
