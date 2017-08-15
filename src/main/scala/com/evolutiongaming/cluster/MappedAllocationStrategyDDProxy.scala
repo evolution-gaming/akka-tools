@@ -34,8 +34,12 @@ class MappedAllocationStrategyDDProxy extends Actor with ActorLogging {
   def receive: Receive = {
     case UpdateMapping(typeName, id, regionRef) =>
       val entityKey = EntityKey(typeName, id)
-      shardToRegionMapping += entityKey -> regionRef
-      replicator ! Update(MappingKey, emptyMap, WriteLocal)(_ + (entityKey.toString -> regionRef))
+      shardToRegionMapping get entityKey match {
+        case Some(ref) if ref == regionRef =>
+        case _                             =>
+          shardToRegionMapping += entityKey -> regionRef
+          replicator ! Update(MappingKey, emptyMap, WriteLocal)(_ + (entityKey.toString -> regionRef))
+      }
 
     case Clear(typeName, id) =>
       val entityKey = EntityKey(typeName, id)
