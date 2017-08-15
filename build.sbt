@@ -33,7 +33,7 @@ scalacOptions ++= Seq(
 
 scalacOptions in (Compile,doc) ++= Seq("-no-link-warnings")
 
-val AkkaVersion = "2.5.3"
+val AkkaVersion = "2.5.4"
 
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 

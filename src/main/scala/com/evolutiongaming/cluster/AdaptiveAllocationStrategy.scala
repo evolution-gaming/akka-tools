@@ -252,7 +252,7 @@ object AdaptiveAllocationStrategy {
     nodesToDeallocate: () => Set[Address])
     (implicit system: ActorSystem, ec: ExecutionContext): AdaptiveAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
-    val proxy = AdaptiveAllocationStrategyDistributedDataProxy(system).ref
+    val proxy = AdaptiveAllocationStrategyDDProxy(system).ref
     new AdaptiveAllocationStrategy(
       typeName = typeName,
       rebalanceThresholdPercent = rebalanceThresholdPercent,

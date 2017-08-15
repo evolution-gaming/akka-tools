@@ -8,11 +8,60 @@ import scala.concurrent.Future
 
 class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
 
-  "ExtendedShardAllocationStrategy" should "pass through requests if no nodesToDeallocate, limit result size" in new Scope {
+  "ExtendedShardAllocationStrategy" should "pass through allocate result if no nodesToDeallocate" in new Scope {
 
     val strategy = new TestExtendedShardAllocationStrategy() {
       override val nodesToDeallocate = () => Set.empty[Address]
-      override val result = ShardIds.toSet -- RebalanceInProgress
+      override val allocateResult  = Some(Refs.head)
+    }
+
+    strategy.allocateShard(Refs.last, ShardIds.head, CurrentShardAllocations).futureValue shouldBe Refs.head
+
+    strategy.passedCurrentShardAllocations shouldBe Some(CurrentShardAllocations)
+  }
+
+  it should "pass through allocate result if the result not in the list of ignored nodes" in new Scope {
+
+    val strategy = new TestExtendedShardAllocationStrategy() {
+      override val nodesToDeallocate = () => Set(testAddress("Address2"), testAddress("Address4"))
+      override val allocateResult  = Some(Refs.head)
+    }
+
+    strategy.allocateShard(Refs.last, ShardIds.head, CurrentShardAllocations).futureValue shouldBe Refs.head
+
+    strategy.passedCurrentShardAllocations shouldBe Some(CurrentShardAllocations)
+  }
+
+
+  it should "return requester if the result is in the list of ignored nodes" in new Scope {
+
+    val strategy = new TestExtendedShardAllocationStrategy() {
+      override val nodesToDeallocate = () => Set(testAddress("Address1"), testAddress("Address4"))
+      override val allocateResult  = Some(Refs.head)
+    }
+
+    strategy.allocateShard(Refs.last, ShardIds.head, CurrentShardAllocations).futureValue shouldBe Refs.last
+
+    strategy.passedCurrentShardAllocations shouldBe Some(CurrentShardAllocations)
+  }
+
+  it should "return arbitrary non-ignored node if the result and requester are both in the list of ignored nodes" in new Scope {
+
+    val strategy = new TestExtendedShardAllocationStrategy() {
+      override val nodesToDeallocate = () => Set(testAddress("Address1"), testAddress("Address5"))
+      override val allocateResult  = Some(Refs.head)
+    }
+
+    strategy.allocateShard(Refs.last, ShardIds.head, CurrentShardAllocations).futureValue should (not equal Refs.head and not equal Refs.last)
+
+    strategy.passedCurrentShardAllocations shouldBe Some(CurrentShardAllocations)
+  }
+
+  it  should "pass through rebalance requests if no nodesToDeallocate, limit result size" in new Scope {
+
+    val strategy = new TestExtendedShardAllocationStrategy() {
+      override val nodesToDeallocate = () => Set.empty[Address]
+      override val rebalanceResult = ShardIds.toSet -- RebalanceInProgress
     }
 
     strategy.rebalance(CurrentShardAllocations, RebalanceInProgress).futureValue shouldBe
@@ -27,7 +76,7 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
     val strategy = new TestExtendedShardAllocationStrategy() {
       override val maxSimultaneousRebalance = 15
       override val nodesToDeallocate = () => Set(testAddress("Address2"), testAddress("Address4"))
-      override val result = ShardIds.slice(24, 29).toSet -- RebalanceInProgress
+      override val rebalanceResult = ShardIds.slice(24, 29).toSet -- RebalanceInProgress
     }
 
     val mandatoryRebalance = (ShardIds.slice(10, 20) ++ ShardIds.slice(30, 40)).toSet
@@ -49,12 +98,17 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
       i <- 1 to 50
     } yield s"Shard$i"
 
-    val CurrentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]] = Map(
-      mockedHostRef("Address1") -> ShardIds.slice(0, 10),
-      mockedHostRef("Address2") -> ShardIds.slice(10, 20),
-      mockedHostRef("Address3") -> ShardIds.slice(20, 30),
-      mockedHostRef("Address4") -> ShardIds.slice(30, 40),
-      mockedHostRef("Address5") -> ShardIds.slice(40, 50))
+    val Refs = Seq(
+      mockedHostRef("Address1"),
+      mockedHostRef("Address2"),
+      mockedHostRef("Address3"),
+      mockedHostRef("Address4"),
+      mockedHostRef("Address5"))
+
+    val CurrentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]] =
+      (for {
+        (ref, index) <- Refs.zipWithIndex
+      } yield ref -> ShardIds.slice(0 + index * 10, 10 + index * 10)).toMap
 
     val RebalanceInProgress: Set[ShardId] = Set(
       ShardIds(0),
@@ -65,7 +119,8 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
 
     abstract class TestExtendedShardAllocationStrategy extends ExtendedShardAllocationStrategy {
 
-      def result: Set[ShardId]
+      def allocateResult: Option[ActorRef] = None
+      def rebalanceResult: Set[ShardId] = Set.empty
       var passedCurrentShardAllocations: Option[Map[ActorRef, immutable.IndexedSeq[ShardId]]] = None
       var passedRebalanceInProgress: Option[Set[ShardId]] = None
 
@@ -77,7 +132,7 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
 
         passedCurrentShardAllocations = Some(currentShardAllocations)
         passedRebalanceInProgress = Some(rebalanceInProgress)
-        Future successful result
+        Future successful rebalanceResult
       }
 
       protected def doAllocate(
@@ -86,7 +141,7 @@ class ExtendedShardAllocationStrategySpec extends AllocationStrategySpec {
         currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardId]]): Future[ActorRef] = {
 
         passedCurrentShardAllocations = Some(currentShardAllocations)
-        Future successful requester
+        Future successful (allocateResult getOrElse requester)
       }
     }
   }

@@ -25,14 +25,21 @@ import scala.util.Try
 object ExtractShardId extends LazyLogging {
 
   val identity: ShardRegion.ExtractShardId = {
-    case x: ShardedMsg => x.id
+    case x: ShardedMsg               => x.id
+    case ShardRegion.StartEntity(id) => id
   }
 
   def uniform(numberOfShards: Int): ShardRegion.ExtractShardId = {
-    case x: ShardedMsg =>
-      val id = x.id
-      val shardId = math.abs(id.hashCode % numberOfShards).toString
-      shardId
+    def shardId(entityId: ShardRegion.EntityId): ShardRegion.ShardId =
+      math.abs(entityId.hashCode % numberOfShards).toString
+
+    {
+      case x: ShardedMsg                     =>
+        val entityId = x.id
+        shardId(entityId)
+      case ShardRegion.StartEntity(entityId) =>
+        shardId(entityId)
+    }
   }
 
   def static(
@@ -53,14 +60,19 @@ object ExtractShardId extends LazyLogging {
     }
     val mappings = mappingsPairList.toMap
     logger debug s"$typeName mappings: $mappings"
-    val result: ShardRegion.ExtractShardId = {
-      case x: ShardedMsg =>
-        val entityId = x.id
-        mappings get entityId match {
-          case Some(shardId) => shardId
-          case None          => fallback(x)
-        }
+
+    def shardId(entityId: ShardRegion.EntityId, msg: ShardRegion.Msg): ShardRegion.ShardId =
+      mappings get entityId match {
+        case Some(shardId) => shardId
+        case None          => fallback(msg)
+      }
+
+    {
+      case msg: ShardedMsg                       =>
+        val entityId = msg.id
+        shardId(entityId, msg)
+      case msg@ShardRegion.StartEntity(entityId) =>
+        shardId(entityId, msg)
     }
-    result
   }
 }

@@ -19,8 +19,8 @@ abstract class ExtendedShardAllocationStrategy(
   protected def maxSimultaneousRebalance: Int
 
   protected def notIgnoredNodes(
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Set[ActorRef] = {
-    val ignoredNodes = nodesToDeallocate()
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
+    ignoredNodes: Set[Address] = nodesToDeallocate()): Set[ActorRef] = {
     currentShardAllocations.keySet filterNot { ref =>
       ignoredNodes contains (addressHelper toGlobal ref.path.address)
     }
@@ -38,8 +38,28 @@ abstract class ExtendedShardAllocationStrategy(
   final def allocateShard(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] =
-    doAllocate(requester, shardId, currentShardAllocations)
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
+
+    val nodeByStrategyFuture = doAllocate(requester, shardId, currentShardAllocations)
+    val ignoredNodes = nodesToDeallocate()
+
+    if (ignoredNodes.isEmpty)
+      nodeByStrategyFuture
+    else {
+      for (nodeByStrategy <- nodeByStrategyFuture) yield {
+
+        val activeNodes = notIgnoredNodes(currentShardAllocations, ignoredNodes)
+        val activeAddresses = activeNodes map (_.path.address)
+
+        if (activeAddresses contains (addressHelper toGlobal nodeByStrategy.path.address))
+          nodeByStrategy
+        else if (activeAddresses contains (addressHelper toGlobal requester.path.address))
+          requester
+        else
+          activeNodes.headOption getOrElse currentShardAllocations.keys.head
+      }
+    }
+  }
 
   final def rebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
