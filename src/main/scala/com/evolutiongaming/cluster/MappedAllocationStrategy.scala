@@ -38,7 +38,6 @@ class MappedAllocationStrategy(
     }
   }
 
-
   def rebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
@@ -46,10 +45,12 @@ class MappedAllocationStrategy(
     logger debug
       s"rebalance $typeName: currentShardAllocations = $currentShardAllocations, rebalanceInProgress = $rebalanceInProgress"
 
-    val result = ((for {
+    val shardsToRebalance = for {
       (ref, shards) <- currentShardAllocations
       shardId <- shards if !(shardToRegionMapping get EntityKey(typeName, shardId) contains ref)
-    } yield shardId).toSet -- rebalanceInProgress) take maxSimultaneousRebalance
+    } yield shardId
+
+    val result = (shardsToRebalance.toSet -- rebalanceInProgress) take maxSimultaneousRebalance
 
     if (result.nonEmpty) logger info s"Rebalance $typeName\n\t" +
       s"current:${ currentShardAllocations.mkString("\n\t\t", "\n\t\t", "") }\n\t" +

@@ -28,9 +28,9 @@ class AdaptiveAllocationStrategyDDProxy extends Actor with ActorLogging {
   import AdaptiveAllocationStrategyDDProxy._
 
   implicit lazy val node = Cluster(context.system)
-  private val selfAddress = node.selfAddress.toString
+  lazy val selfAddress = node.selfAddress.toString
   lazy val replicator: ActorRef = DistributedData(context.system).replicator
-  private val emptyMap = ORMultiMap.empty[String, String]
+  val emptyMap = ORMultiMap.empty[String, String]
 
   replicator ! Subscribe(EntityToNodeCountersKey, self)
 

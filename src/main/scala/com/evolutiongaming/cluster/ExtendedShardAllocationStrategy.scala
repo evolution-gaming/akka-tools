@@ -38,22 +38,26 @@ abstract class ExtendedShardAllocationStrategy(
   final def allocateShard(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
-    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] =
-  for (nodeByStrategy <- doAllocate(requester, shardId, currentShardAllocations)) yield {
+    currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
+
+    val nodeByStrategyFuture = doAllocate(requester, shardId, currentShardAllocations)
     val ignoredNodes = nodesToDeallocate()
 
     if (ignoredNodes.isEmpty)
-      nodeByStrategy
+      nodeByStrategyFuture
     else {
-      val activeNodes = notIgnoredNodes(currentShardAllocations, ignoredNodes)
-      val activeAddresses = activeNodes map (_.path.address)
+      for (nodeByStrategy <- nodeByStrategyFuture) yield {
 
-      if (activeAddresses contains (addressHelper toGlobal nodeByStrategy.path.address))
-        nodeByStrategy
-      else if (activeAddresses contains (addressHelper toGlobal requester.path.address))
-        requester
-      else
-        activeNodes.headOption getOrElse currentShardAllocations.keys.head
+        val activeNodes = notIgnoredNodes(currentShardAllocations, ignoredNodes)
+        val activeAddresses = activeNodes map (_.path.address)
+
+        if (activeAddresses contains (addressHelper toGlobal nodeByStrategy.path.address))
+          nodeByStrategy
+        else if (activeAddresses contains (addressHelper toGlobal requester.path.address))
+          requester
+        else
+          activeNodes.headOption getOrElse currentShardAllocations.keys.head
+      }
     }
   }
 

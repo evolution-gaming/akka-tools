@@ -27,7 +27,7 @@ class MappedAllocationStrategyDDProxy extends Actor with ActorLogging {
 
   implicit lazy val node = Cluster(context.system)
   lazy val replicator: ActorRef = DistributedData(context.system).replicator
-  private val emptyMap = LWWMap.empty[String, ActorRef]
+  val emptyMap = LWWMap.empty[String, ActorRef]
 
   replicator ! Subscribe(MappingKey, self)
 
