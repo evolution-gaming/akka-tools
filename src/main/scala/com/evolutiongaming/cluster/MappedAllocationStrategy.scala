@@ -1,49 +1,60 @@
 package com.evolutiongaming.cluster
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Address}
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class MappedAllocationStrategy(
   typeName: String,
   fallbackStrategy: ShardAllocationStrategy,
   proxy: ActorRef,
-  val maxSimultaneousRebalance: Int)
-  extends ShardAllocationStrategy with LazyLogging {
+  val maxSimultaneousRebalance: Int,
+  val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
+  extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import MappedAllocationStrategy._
 
   def mapShardToRegion(shardId: ShardRegion.ShardId, regionRef: ActorRef) =
     proxy ! UpdateMapping(typeName, shardId, regionRef)
 
-  def allocateShard(
+  def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
-    shardToRegionMapping get EntityKey(typeName, shardId) match {
+    val result = (shardToRegionMapping get EntityKey(typeName, shardId)) flatMap { toNode =>
+      val currentRegions = currentShardAllocations.keySet
+      if (currentRegions contains toNode)
+        Some(toNode)
+      else {
+        val toNodeHost = (addressHelper toGlobal toNode.path.address).host
+        currentRegions find (ref => (addressHelper toGlobal ref.path.address).host == toNodeHost)
+      }
+    }
+
+    result match {
       case Some(toNode) =>
         logger debug s"AllocateShard $typeName\n\t" +
           s"shardId:\t$shardId\n\t" +
           s"on node:\t$toNode\n\t" +
           s"requester:\t$requester\n\t"
         Future successful toNode
-      case None =>
+      case None         =>
         logger debug s"AllocateShard fallback $typeName, shardId:\t$shardId"
         fallbackStrategy.allocateShard(requester, shardId, currentShardAllocations)
     }
   }
 
-  def rebalance(
+  def doRebalance(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]],
     rebalanceInProgress: Set[ShardRegion.ShardId]): Future[Set[ShardRegion.ShardId]] = {
 
     logger debug
-      s"rebalance $typeName: currentShardAllocations = $currentShardAllocations, rebalanceInProgress = $rebalanceInProgress"
+      s"doRebalance $typeName: currentShardAllocations = $currentShardAllocations, rebalanceInProgress = $rebalanceInProgress"
 
     val shardsToRebalance = for {
       (ref, shards) <- currentShardAllocations
@@ -66,15 +77,17 @@ object MappedAllocationStrategy {
   def apply(
     typeName: String,
     fallbackStrategy: ShardAllocationStrategy,
-    maxSimultaneousRebalance: Int)
-    (implicit system: ActorSystem): MappedAllocationStrategy = {
+    maxSimultaneousRebalance: Int,
+    nodesToDeallocate: () => Set[Address])
+    (implicit system: ActorSystem, ec: ExecutionContext): MappedAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
     val proxy = MappedAllocationStrategyDDProxy(system).ref
     new MappedAllocationStrategy(
       typeName = typeName,
       fallbackStrategy = fallbackStrategy,
       proxy = proxy,
-      maxSimultaneousRebalance = maxSimultaneousRebalance)
+      maxSimultaneousRebalance = maxSimultaneousRebalance,
+      nodesToDeallocate = nodesToDeallocate)
   }
 
   case class EntityKey(typeName: String, id: ShardRegion.ShardId) {

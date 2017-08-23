@@ -136,7 +136,8 @@ class MappedAllocationStrategyDDSpec extends AllocationStrategySpec {
       typeName = TypeName,
       fallbackStrategy = fallbackStrategy,
       proxy = proxy,
-      maxSimultaneousRebalance = 1)
+      maxSimultaneousRebalance = 1,
+      nodesToDeallocate = () => Set.empty)
 
     val result5 = strategy1.rebalance(
       shardAllocations,
@@ -216,7 +217,8 @@ class MappedAllocationStrategyDDSpec extends AllocationStrategySpec {
       typeName = TypeName,
       fallbackStrategy = fallbackStrategy,
       proxy = proxy,
-      maxSimultaneousRebalance = MaxSimultaneousRebalance)
+      maxSimultaneousRebalance = MaxSimultaneousRebalance,
+      nodesToDeallocate = () => Set.empty)
 
     expectMsgPF() {
       case Subscribe(`MappingKey`, _) =>
