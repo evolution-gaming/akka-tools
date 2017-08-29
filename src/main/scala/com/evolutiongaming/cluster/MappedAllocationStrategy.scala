@@ -27,7 +27,7 @@ class MappedAllocationStrategy(
     currentShardAllocations: Map[ActorRef, immutable.IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
     val result = (shardToRegionMapping get EntityKey(typeName, shardId)) flatMap { toNode =>
-      val currentRegions = currentShardAllocations.keySet
+      val currentRegions = notIgnoredNodes(currentShardAllocations)
       if (currentRegions contains toNode)
         Some(toNode)
       else {
@@ -56,9 +56,14 @@ class MappedAllocationStrategy(
     logger debug
       s"doRebalance $typeName: currentShardAllocations = $currentShardAllocations, rebalanceInProgress = $rebalanceInProgress"
 
+    val activeNodes = notIgnoredNodes(currentShardAllocations)
+
     val shardsToRebalance = for {
       (ref, shards) <- currentShardAllocations
-      shardId <- shards if !(shardToRegionMapping get EntityKey(typeName, shardId) contains ref)
+      shardId <- shards if {
+      val mappedNode = shardToRegionMapping get EntityKey(typeName, shardId)
+      !(mappedNode contains ref) && (mappedNode exists activeNodes.contains)
+    }
     } yield shardId
 
     val result = (shardsToRebalance.toSet -- rebalanceInProgress) take maxSimultaneousRebalance
