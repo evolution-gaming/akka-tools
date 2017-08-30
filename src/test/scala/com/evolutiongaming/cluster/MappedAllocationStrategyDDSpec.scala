@@ -124,7 +124,7 @@ class MappedAllocationStrategyDDSpec extends AllocationStrategySpec {
     result2 shouldBe Set(entityId4)
 
 
-    // 1,4 is in progress - should not rebalance
+    // 1, 4 are in progress - should not rebalance
     val result3 = strategy.rebalance(
       shardAllocations,
       rebalanceInProgress = Set[ShardId](entityId4, entityId1)).futureValue
@@ -172,6 +172,7 @@ class MappedAllocationStrategyDDSpec extends AllocationStrategySpec {
     val entityKey3 = entityKey(entityId3)
     val entityId4 = "4"
     val entityKey4 = entityKey(entityId4)
+    val entityId5 = "5"
 
     val localAddressRef = mockedAddressRef(clusterNode.selfAddress)
     val anotherAddressRef1 = mockedHostRef("anotherAddress1")
@@ -188,7 +189,7 @@ class MappedAllocationStrategyDDSpec extends AllocationStrategySpec {
 
     val shardAllocations = Map[ActorRef, immutable.IndexedSeq[ShardId]](
       anotherAddressRef1 -> immutable.IndexedSeq[ShardId](entityId1, entityId2),
-      anotherAddressRef2 -> immutable.IndexedSeq[ShardId](entityId3),
+      anotherAddressRef2 -> immutable.IndexedSeq[ShardId](entityId3, entityId5),
       localAddressRef -> immutable.IndexedSeq[ShardId](entityId4))
 
     val noShard1ShardAllocations = Map[ActorRef, immutable.IndexedSeq[ShardId]](
