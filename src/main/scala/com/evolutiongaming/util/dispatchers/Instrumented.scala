@@ -69,18 +69,20 @@ object Instrumented {
     def metrics(id: String, name: String, registry: MetricRegistry): Instrument = {
       val queue = registry histogram s"$name.queue"
       val run = registry histogram s"$name.run"
-      val workers = registry counter s"$name.workers"
+      val workersCurrent = registry counter s"$name.workers.current" // current value, very volatile
+      val workers = registry histogram s"$name.workers"              // aggregated metrics
 
       () => {
         val created = Platform.currentTime
         () => {
           val started = Platform.currentTime
           queue update started - created
-          workers.inc()
+          workersCurrent.inc()
+          workers.update(workersCurrent.getCount)
           () => {
             val stopped = Platform.currentTime
             run update stopped - started
-            workers.dec()
+            workersCurrent.dec()
             ()
           }
         }
