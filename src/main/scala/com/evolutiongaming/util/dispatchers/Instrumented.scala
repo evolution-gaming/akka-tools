@@ -1,5 +1,7 @@
 package com.evolutiongaming.util.dispatchers
 
+import java.util.concurrent.atomic.LongAdder
+
 import akka.dispatch.OverrideAkkaRunnable
 import com.codahale.metrics.MetricRegistry
 import com.evolutiongaming.util.ExecutionThreadTracker
@@ -14,7 +16,7 @@ class Instrumented(config: InstrumentedConfig, registry: MetricRegistry) {
   private val instruments: List[Instrument] = {
     val name = config.id.replace('.', '-')
     val mdc = if (config.mdc) Some(Instrument.Mdc) else None
-    val metrics = if (config.metrics) Some(Instrument.metrics(config.id, name, registry)) else None
+    val metrics = if (config.metrics) Some(Instrument.metrics(config.id, name, registry, new LongAdder)) else None
     val executionTracker = config.executionTracker map { Instrument.executionTracker(name, _, registry) }
     val result = (mdc ++ metrics ++ executionTracker).toList
     result
@@ -66,21 +68,23 @@ object Instrumented {
       }
     }
 
-    def metrics(id: String, name: String, registry: MetricRegistry): Instrument = {
+    def metrics(id: String, name: String, registry: MetricRegistry, currentWorkers: LongAdder): Instrument = {
       val queue = registry histogram s"$name.queue"
       val run = registry histogram s"$name.run"
-      val workers = registry counter s"$name.workers"
+      val workers = registry histogram s"$name.workers"
 
       () => {
         val created = Platform.currentTime
         () => {
           val started = Platform.currentTime
           queue update started - created
-          workers.inc()
+          currentWorkers.increment()
+          workers.update(currentWorkers.intValue())
           () => {
             val stopped = Platform.currentTime
             run update stopped - started
-            workers.dec()
+            currentWorkers.decrement()
+            workers.update(currentWorkers.intValue())
             ()
           }
         }
