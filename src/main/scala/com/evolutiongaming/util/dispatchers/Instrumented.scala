@@ -84,6 +84,7 @@ object Instrumented {
             val stopped = Platform.currentTime
             run update stopped - started
             currentWorkers.decrement()
+            workers.update(currentWorkers.intValue())
             ()
           }
         }
