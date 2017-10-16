@@ -1,57 +1,87 @@
-name := "akka-tools"
+import Dependencies._
+import sbt.Keys.{homepage, organizationName, startYear}
 
-organization := "com.evolutiongaming"
+lazy val thisBuildSettings = inThisBuild(List(
+  scalaVersion := "2.12.3"
+))
 
-homepage := Some(new URL("http://github.com/evolution-gaming/akka-tools"))
-
-startYear := Some(2016)
-
-organizationName := "Evolution Gaming"
-
-organizationHomepage := Some(url("http://evolutiongaming.com"))
-
-bintrayOrganization := Some("evolutiongaming")
-
-scalaVersion := "2.12.3"
-
-crossScalaVersions := Seq("2.12.3", "2.11.11")
-
-releaseCrossBuild := true
-
-scalacOptions ++= Seq(
-  "-encoding", "UTF-8",
-  "-feature",
-  "-unchecked",
-  "-deprecation",
-  "-Xfatal-warnings",
-  "-Xlint",
-  "-Yno-adapted-args",
-  "-Ywarn-dead-code",
-  "-Ywarn-numeric-widen",
-  "-Xfuture"
+lazy val commonSettings = Seq(
+  scalacOptions in(Compile, doc) ++= Seq("-no-link-warnings"),
+  scalacOptions ++= Seq(
+    "-encoding", "UTF-8",
+    "-feature",
+    "-unchecked",
+    "-deprecation",
+    "-Xfatal-warnings",
+    "-Xlint",
+    "-Yno-adapted-args",
+    "-Ywarn-dead-code",
+    "-Ywarn-numeric-widen",
+    "-Xfuture"
+  ),
+  crossScalaVersions := Seq("2.12.3", "2.11.11"),
+  resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
-scalacOptions in (Compile,doc) ++= Seq("-no-link-warnings")
-
-val AkkaVersion = "2.5.4"
-
-resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
-
-libraryDependencies ++= Seq(
-  "com.evolutiongaming" %% "scala-tools" % "1.11",
-  "com.evolutiongaming" %% "metric-tools" % "0.4",
-  "io.dropwizard.metrics" % "metrics-core" % "3.2.2",
-  "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
-  "com.typesafe.akka" %% "akka-cluster" % AkkaVersion,
-  "com.typesafe.akka" %% "akka-cluster-sharding" % AkkaVersion,
-  "com.typesafe.akka" %% "akka-cluster-tools" % AkkaVersion,
-  "com.typesafe.akka" %% "akka-distributed-data" % AkkaVersion,
-  "com.google.guava" % "guava" % "19.0",
-  "com.google.code.findbugs" % "jsr305" % "3.0.2",
-  "com.typesafe.akka" %% "akka-testkit" % AkkaVersion % Test,
-  "org.scalatest" %% "scalatest" % "3.0.3" % Test,
-  "org.mockito" % "mockito-core" % "1.9.5" % Test
-
+lazy val publishSettings = Seq(
+  homepage := Some(new URL("http://github.com/evolution-gaming/akka-tools")),
+  startYear := Some(2016),
+  organizationName := "Evolution Gaming",
+  organizationHomepage := Some(url("http://evolutiongaming.com")),
+  bintrayOrganization := Some("evolutiongaming"),
+  releaseCrossBuild := true,
+  organization := "com.evolutiongaming",
+  licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")))
 )
 
-licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")))
+lazy val allSettings = thisBuildSettings ++ commonSettings ++ publishSettings
+
+lazy val akkaTools = (project
+  in file(".")
+  settings (name := "akka-tools")
+  settings allSettings
+  aggregate(instrumentation, cluster, persistence, serialization, util, test))
+
+lazy val instrumentation = (project
+  in file("instrumentation")
+  dependsOn util
+  settings (name := "akka-tools-instrumentation")
+  settings (libraryDependencies ++= Seq(Akka.Actor, ScalaTools, MetricTools, MetricsCore))
+  settings allSettings)
+
+lazy val cluster = (project
+  in file("cluster")
+  dependsOn (test % "compile->test")
+  settings (name := "akka-tools-cluster")
+  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.Cluster, Akka.ClusterSharding, Akka.TestKit % Test,
+    Logging, MetricsCore, ScalaTools, MockitoCore % Test, ScalaTest % Test))
+  settings allSettings)
+
+lazy val persistence = (project
+  in file("persistence")
+  dependsOn (serialization, test % "compile->test")
+  settings (name := "akka-tools-persistence")
+  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.AkkaPersistence, ScalaTools,
+    Akka.TestKit % "test", ScalaTest % "test"))
+  settings allSettings)
+
+lazy val serialization = (project
+  in file("serialization")
+  dependsOn (test % "compile->test")
+  settings (name := "akka-tools-serialization")
+  settings (libraryDependencies ++= Seq(Akka.Actor, ScalaTest % "test"))
+  settings allSettings)
+
+lazy val util = (project
+  in file("util")
+  dependsOn (test % "compile->test")
+  settings (name := "akka-tools-util")
+  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit % "test", ScalaTest % "test",
+    MetricTools, MetricsCore, Logging))
+  settings allSettings)
+
+lazy val test = (project
+  in file("test")
+  settings (name := "akka-tools-test")
+  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit, ScalaTest, Guava))
+  settings allSettings)
