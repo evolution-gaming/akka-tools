@@ -54,6 +54,7 @@ class ExtendedLeastShardAllocationStrategySpec extends AllocationStrategySpec {
     strategy.rebalance(allocations, Set.empty).futureValue shouldBe Set("Shard2", "Shard3")
     strategy.rebalance(allocations, Set("Shard2", "Shard3")).futureValue shouldBe Set.empty[String]
   }
+
   it should "limit number of simultaneous rebalance" in new Scope {
     val allocations = Map(
       region1 -> Vector("Shard1"),
@@ -61,6 +62,22 @@ class ExtendedLeastShardAllocationStrategySpec extends AllocationStrategySpec {
 
     strategy.rebalance(allocations, Set("Shard2")).futureValue shouldBe Set("Shard3")
     strategy.rebalance(allocations, Set("Shard2", "Shard3")).futureValue shouldBe Set.empty[String]
+  }
+
+  it should "don't rebalance excessive shards" in new Scope {
+    override val strategy = new ExtendedLeastShardAllocationStrategy(
+      fallbackStrategy = fallbackStrategy,
+      rebalanceThreshold = 1,
+      maxSimultaneousRebalance = 5,
+      nodesToDeallocate = () => Set(region3.path.address))
+
+    val allocations = Map(
+      region1 -> Vector("Shard1", "Shard2", "Shard3", "Shard4", "Shard5", "Shard6", "Shard7"),
+      region2 -> Vector("Shard8", "Shard9", "Shard10", "Shard11", "Shard12"),
+      region3 -> Vector.empty)
+
+    strategy.rebalance(allocations, Set("Shard1")).futureValue shouldBe Set("Shard2")
+    strategy.rebalance(allocations, Set("Shard1", "Shard2")).futureValue shouldBe Set.empty[String]
   }
 
 

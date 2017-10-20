@@ -30,15 +30,13 @@ class ExtendedLeastShardAllocationStrategy(
   val nodesToDeallocate: () => Set[Address])(implicit system: ActorSystem, ec: ExecutionContext)
   extends ExtendedShardAllocationStrategy {
 
-  private val emptyRebalanceResult = Future successful Set.empty[ShardRegion.ShardId]
-
   protected def doAllocate(
     requester: ActorRef,
     shardId: ShardRegion.ShardId,
     currentShardAllocations: Map[ActorRef, IndexedSeq[ShardRegion.ShardId]]): Future[ActorRef] = {
 
     val activeNodes = notIgnoredNodes(currentShardAllocations)
-    val activeAllocations = currentShardAllocations filterKeys activeNodes.contains
+    val activeAllocations = currentShardAllocations filterKeys activeNodes
 
     val regionWithLeastShards = if (activeAllocations.isEmpty)
       None
@@ -59,15 +57,16 @@ class ExtendedLeastShardAllocationStrategy(
 
     if (rebalanceInProgress.size < maxSimultaneousRebalance) {
       val activeNodes = notIgnoredNodes(currentShardAllocations)
-      val activeShards = currentShardAllocations filterKeys activeNodes.contains collect {
+      val activeShards = currentShardAllocations filterKeys activeNodes collect {
         case (_, v) => v filterNot rebalanceInProgress
       }
 
       if (activeShards.nonEmpty) {
         val leastShards = activeShards minBy (_.size)
         val mostShards = activeShards maxBy (_.size)
+        val dif = mostShards.size - leastShards.size
         if (mostShards.size - leastShards.size >= rebalanceThreshold)
-          Future.successful(mostShards.take(maxSimultaneousRebalance - rebalanceInProgress.size).toSet)
+          Future successful (mostShards take math.min(dif, maxSimultaneousRebalance - rebalanceInProgress.size)).toSet
         else
           emptyRebalanceResult
       } else emptyRebalanceResult
