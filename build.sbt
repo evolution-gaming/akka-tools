@@ -77,7 +77,7 @@ lazy val util = (project
   dependsOn (test % "test->compile")
   settings (name := "akka-tools-util")
   settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit % "test", ScalaTest % "test",
-    MetricTools, MetricsCore, Logging))
+    MetricTools, MetricsCore, Logging, Guava))
   settings allSettings)
 
 lazy val test = (project
