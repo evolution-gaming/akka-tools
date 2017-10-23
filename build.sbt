@@ -51,7 +51,7 @@ lazy val instrumentation = (project
 
 lazy val cluster = (project
   in file("cluster")
-  dependsOn (test % "compile->test")
+  dependsOn (test % "test->compile")
   settings (name := "akka-tools-cluster")
   settings (libraryDependencies ++= Seq(Akka.Actor, Akka.Cluster, Akka.ClusterSharding, Akka.TestKit % Test,
     Logging, MetricsCore, ScalaTools, MockitoCore % Test, ScalaTest % Test))
@@ -59,7 +59,7 @@ lazy val cluster = (project
 
 lazy val persistence = (project
   in file("persistence")
-  dependsOn (serialization, test % "compile->test")
+  dependsOn (serialization, test % "test->compile")
   settings (name := "akka-tools-persistence")
   settings (libraryDependencies ++= Seq(Akka.Actor, Akka.AkkaPersistence, ScalaTools,
     Akka.TestKit % "test", ScalaTest % "test"))
@@ -67,14 +67,14 @@ lazy val persistence = (project
 
 lazy val serialization = (project
   in file("serialization")
-  dependsOn (test % "compile->test")
+  dependsOn (test % "test->compile")
   settings (name := "akka-tools-serialization")
   settings (libraryDependencies ++= Seq(Akka.Actor, ScalaTest % "test"))
   settings allSettings)
 
 lazy val util = (project
   in file("util")
-  dependsOn (test % "compile->test")
+  dependsOn (test % "test->compile")
   settings (name := "akka-tools-util")
   settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit % "test", ScalaTest % "test",
     MetricTools, MetricsCore, Logging))
