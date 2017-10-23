@@ -64,9 +64,9 @@ class ExtendedLeastShardAllocationStrategy(
       if (activeShards.nonEmpty) {
         val leastShards = activeShards minBy (_.size)
         val mostShards = activeShards maxBy (_.size)
-        val dif = mostShards.size - leastShards.size
-        if (mostShards.size - leastShards.size >= rebalanceThreshold)
-          Future successful (mostShards take math.min(dif, maxSimultaneousRebalance - rebalanceInProgress.size)).toSet
+        val difference = mostShards.size - leastShards.size
+        if (difference >= rebalanceThreshold)
+          Future successful (mostShards take math.min(difference, maxSimultaneousRebalance - rebalanceInProgress.size)).toSet
         else
           emptyRebalanceResult
       } else emptyRebalanceResult
