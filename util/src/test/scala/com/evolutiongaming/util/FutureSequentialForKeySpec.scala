@@ -1,5 +1,6 @@
 package com.evolutiongaming.util
 
+import com.evolutiongaming.test.ActorSpec
 import org.scalatest.concurrent.{ScalaFutures, TimeLimits}
 import org.scalatest.{Matchers, WordSpec}
 
