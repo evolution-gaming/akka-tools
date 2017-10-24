@@ -31,7 +31,7 @@ lazy val publishSettings = Seq(
   bintrayOrganization := Some("evolutiongaming"),
   releaseCrossBuild := true,
   organization := "com.evolutiongaming",
-  licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")))
+  licenses := Seq("MIT" -> url("http://www.opensource.org/licenses/mit-license.html"))
 )
 
 lazy val allSettings = thisBuildSettings ++ commonSettings ++ publishSettings
