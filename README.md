@@ -27,5 +27,5 @@ b) shards if their nodes are not found in the current cluster nodes.
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "akka-tools" % "1.1.1"
+libraryDependencies += "com.evolutiongaming" %% "akka-tools" % "1.2.3"
 ```
