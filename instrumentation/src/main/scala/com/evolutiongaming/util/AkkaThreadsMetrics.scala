@@ -17,10 +17,10 @@ class AkkaThreadsMetrics(registry: MetricRegistry, interval: FiniteDuration = 30
   def start(system: ActorSystem): Unit = {
     val groups = new ActorSystemGauge(system)
     for {
-      (name, group) <- groups.loadValue()
+      (name, group) <- groups.getValue
     } {
       def derivative(count: Group => Long) = new DerivativeGauge[Groups, Long](groups) {
-        def transform(groups: Groups) = groups get name map count getOrElse 0L
+        def transform(groups: Groups): Long = groups get name map count getOrElse 0L
       }
 
       val count = derivative { _.count }
@@ -39,8 +39,9 @@ class AkkaThreadsMetrics(registry: MetricRegistry, interval: FiniteDuration = 30
 
   class ActorSystemGauge(actorSystem: ActorSystem) extends CachedGauge[Groups](interval.length, interval.unit) {
     private val threads = ManagementFactory.getThreadMXBean
+    getValue // eagerly cache value
 
-    def loadValue() = {
+    def loadValue(): Map[String, Group] = {
       val ids = threads.getAllThreadIds
       val infos = threads.getThreadInfo(ids)
 
