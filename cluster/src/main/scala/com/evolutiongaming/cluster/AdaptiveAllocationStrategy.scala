@@ -60,7 +60,7 @@ class AdaptiveAllocationStrategy(
 
   /** Should be executed on all nodes, incrementing counters for the local node (side effects only) */
   def wrapExtractShardId(extractShardId: ShardRegion.ExtractShardId): ShardRegion.ExtractShardId = {
-    case x: ShardedMsg =>
+    case x: ShardedMsg                =>
       val shardId = extractShardId(x)
       val weight = countControl(x)
       if (weight > 0) {
@@ -69,6 +69,7 @@ class AdaptiveAllocationStrategy(
           (metricRegistry meter s"sharding.$typeName.sender.$shardId.$selfHost") mark weight.toLong
       }
       shardId
+    case msg: ShardRegion.StartEntity => extractShardId(msg)
   }
 
   private def notIgnoredNodesStr(
