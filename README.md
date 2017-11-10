@@ -11,6 +11,10 @@ SingleNodeAllocationStrategy is used to allocate all the shards on a node which 
 ### AdaptiveAllocationStrategy
 AdaptiveAllocationStrategy is used to allocate a shard on a node with the maximum amount of traffic (messages to this shard from this node) during specified time interval.
 
+### MappedAllocationStrategy
+MappedAllocationStrategy is used to allocate a shard on a node for which a special shard-related trigger 
+(for example, a fact of opening a new user connection) has been fired most recently.
+
 ### DualAllocationStrategy
 DualAllocationStrategy is a proxy-like allocation strategy for using two different allocation strategies simultaneously.
 It has a list of ShardId-s which should be processed by the second (additional) allocation strategy (this setting is dynamic and can be reconfigured on the fly).
