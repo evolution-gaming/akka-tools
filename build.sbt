@@ -2,7 +2,7 @@ import Dependencies._
 import sbt.Keys.{homepage, organizationName, startYear}
 
 lazy val thisBuildSettings = inThisBuild(List(
-  scalaVersion := "2.12.3"
+  scalaVersion := "2.12.4"
 ))
 
 lazy val commonSettings = Seq(
@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Xfuture"
   ),
-  crossScalaVersions := Seq("2.12.3", "2.11.11"),
+  crossScalaVersions := Seq("2.12.4", "2.11.11"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
