@@ -31,4 +31,13 @@ object Dependencies {
   lazy val Logging = "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
   lazy val ScalaTools = "com.evolutiongaming" %% "scala-tools" % "1.11"
   lazy val MockitoCore = "org.mockito" % "mockito-core" % "1.9.5"
+  lazy val ChillAkka = "com.twitter" %% "chill-akka" % "0.9.2" % Compile excludeAll(
+    ExclusionRule("org.ow2.asm", "asm"))
+  lazy val playJsonTools = "com.evolutiongaming" %% "play-json-tools" % "0.1.0"
+
+  lazy val catsCore = "org.typelevel" %% "cats-core" % "1.0.0-MF"
+
+  val scalax = "com.github.t3hnar" %% "scalax" % "3.2" % Compile
+
+  lazy val PlayJson = "com.typesafe.play" %% "play-json" % "2.6.6"
 }
