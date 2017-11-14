@@ -35,8 +35,6 @@ object Dependencies {
     ExclusionRule("org.ow2.asm", "asm"))
   lazy val playJsonTools = "com.evolutiongaming" %% "play-json-tools" % "0.1.0"
 
-  lazy val catsCore = "org.typelevel" %% "cats-core" % "1.0.0-MF"
-
   val scalax = "com.github.t3hnar" %% "scalax" % "3.2" % Compile
 
   lazy val PlayJson = "com.typesafe.play" %% "play-json" % "2.6.6"

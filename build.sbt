@@ -69,7 +69,7 @@ lazy val serialization = (project
   in file("serialization")
   dependsOn (test % "test->compile")
   settings (name := "akka-tools-serialization")
-  settings (libraryDependencies ++= Seq(Akka.Actor, Logging, ChillAkka, PlayJson, scalax, catsCore,
+  settings (libraryDependencies ++= Seq(Akka.Actor, Logging, ChillAkka, PlayJson, scalax,
     Akka.AkkaPersistence, playJsonTools, ScalaTest % "test"))
   settings allSettings)
 
