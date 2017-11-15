@@ -1,0 +1,14 @@
+{
+  "payload": {
+    "type": "TestCaseClassB",
+    "value": {
+      "userId": "userId",
+      "timestamp": "2015-04-29T11:11:00Z"
+    }
+  },
+  "nr": 3,
+  "id": "persistenceId",
+  "type": "TestTrait",
+  "writer": "writerUuid",
+  "manifest": "com.evolutiongaming.serialization.TestCaseClassB"
+}

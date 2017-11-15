@@ -25,7 +25,7 @@ import akka.testkit.TestProbe
 import com.codahale.metrics.{Meter, MetricRegistry}
 import com.evolutiongaming.cluster.AdaptiveAllocationStrategy.{CounterKey, ValueData}
 import org.mockito.Mockito._
-import org.mockito.{Matchers => MM}
+import org.mockito.{ArgumentMatchers => MM}
 
 import scala.collection.immutable
 import scala.compat.Platform

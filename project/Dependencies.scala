@@ -24,18 +24,18 @@ object Dependencies {
   private val scalaLoggingVersion = "3.7.2"
 
   lazy val ScalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion
-  lazy val MetricTools = "com.evolutiongaming" %% "metric-tools" % "0.4"
-  lazy val MetricsCore = "io.dropwizard.metrics" % "metrics-core" % "3.2.2"
-  lazy val Guava = "com.google.guava" % "guava" % "19.0"
+  lazy val MetricTools = "com.evolutiongaming" %% "metric-tools" % "0.9"
+  lazy val MetricsCore = "io.dropwizard.metrics" % "metrics-core" % "3.2.5"
+  lazy val Guava = "com.google.guava" % "guava" % "23.0"
   lazy val Logback = "ch.qos.logback" % "logback-classic" % logbackVersion
   lazy val Logging = "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion
-  lazy val ScalaTools = "com.evolutiongaming" %% "scala-tools" % "1.11"
-  lazy val MockitoCore = "org.mockito" % "mockito-core" % "1.9.5"
+  lazy val ScalaTools = "com.evolutiongaming" %% "scala-tools" % "1.14"
+  lazy val MockitoCore = "org.mockito" % "mockito-core" % "2.12.0"
   lazy val ChillAkka = "com.twitter" %% "chill-akka" % "0.9.2" % Compile excludeAll(
     ExclusionRule("org.ow2.asm", "asm"))
   lazy val playJsonTools = "com.evolutiongaming" %% "play-json-tools" % "0.1.0"
 
   val scalax = "com.github.t3hnar" %% "scalax" % "3.2" % Compile
 
-  lazy val PlayJson = "com.typesafe.play" %% "play-json" % "2.6.6"
+  lazy val PlayJson = "com.typesafe.play" %% "play-json" % "2.6.7"
 }
