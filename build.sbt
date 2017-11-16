@@ -89,7 +89,7 @@ lazy val test = (project
 
 lazy val replicate2kafka = (project
   in file("replicate2kafka")
-  dependsOn (persistence, test)
+  dependsOn (persistence, test % "test->compile")
   settings (name := "akka-tools-replicate2kafka")
   settings (libraryDependencies ++=
     Seq(Akka.Actor, Akka.AkkaPersistence, Logging, kafkaClients, kafkaStream, ScalaTools, ScalaTest % Test, MockitoCore % Test))
