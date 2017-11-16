@@ -40,7 +40,7 @@ lazy val akkaTools = (project
   in file(".")
   settings (name := "akka-tools")
   settings allSettings
-  aggregate(instrumentation, cluster, persistence, serialization, util, test))
+  aggregate(instrumentation, cluster, persistence, serialization, util, test, replicate2kafka))
 
 lazy val instrumentation = (project
   in file("instrumentation")
@@ -85,4 +85,11 @@ lazy val test = (project
   in file("test")
   settings (name := "akka-tools-test")
   settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit, ScalaTest, Guava))
+  settings allSettings)
+
+lazy val replicate2kafka = (project
+  in file("replicate2kafka")
+  dependsOn persistence
+  settings (name := "akka-tools-replicate2kafka")
+  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.AkkaPersistence, Logging, kafkaClients, kafkaStream, ScalaTools))
   settings allSettings)
