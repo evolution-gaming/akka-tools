@@ -9,6 +9,7 @@ import akka.serialization.{Serialization, SerializationExtension}
 import akka.stream._
 import akka.stream.scaladsl.{Keep, Sink, Source, SourceQueueWithComplete}
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import com.evolutiongaming.persistence.PersistenceId
 import com.evolutiongaming.util.ConfigHelper._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging

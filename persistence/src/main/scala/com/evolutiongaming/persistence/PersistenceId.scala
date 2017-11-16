@@ -1,4 +1,4 @@
-package com.evolutiongaming.replicate2kafka
+package com.evolutiongaming.persistence
 
 import scala.PartialFunction.condOpt
 
