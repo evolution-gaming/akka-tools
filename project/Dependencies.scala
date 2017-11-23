@@ -24,7 +24,7 @@ object Dependencies {
   private val scalaLoggingVersion = "3.7.2"
 
   lazy val ScalaTest = "org.scalatest" %% "scalatest" % scalaTestVersion
-  lazy val MetricTools = "com.evolutiongaming" %% "metric-tools" % "0.9"
+  lazy val MetricTools = "com.evolutiongaming" %% "metric-tools" % "1.0"
   lazy val MetricsCore = "io.dropwizard.metrics" % "metrics-core" % "3.2.5"
   lazy val Guava = "com.google.guava" % "guava" % "23.0"
   lazy val Logback = "ch.qos.logback" % "logback-classic" % logbackVersion
