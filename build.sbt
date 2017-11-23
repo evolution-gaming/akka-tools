@@ -84,7 +84,7 @@ lazy val util = (project
 lazy val test = (project
   in file("test")
   settings (name := "akka-tools-test")
-  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit, ScalaTest, Guava))
+  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit, ScalaTest))
   settings allSettings)
 
 lazy val replicate2kafka = (project
