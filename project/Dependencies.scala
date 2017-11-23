@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   object Akka {
-    private val akkaVersion = "2.5.6"
+    private val akkaVersion = "2.5.7"
 
     val Stream = "com.typesafe.akka" %% "akka-stream" % akkaVersion
     val Actor = "com.typesafe.akka" %% "akka-actor" % akkaVersion
@@ -37,10 +37,10 @@ object Dependencies {
 
   val scalax = "com.github.t3hnar" %% "scalax" % "3.2" % Compile
 
-  private val kafkaVersion = "0.11.0.1"
+  private val kafkaVersion = "0.11.0.2"
 
   val kafkaClients = "org.apache.kafka" % "kafka-clients" % kafkaVersion
-  val kafkaStream = "com.typesafe.akka" %% "akka-stream-kafka" % "0.17"
+  val kafkaStream = "com.typesafe.akka" %% "akka-stream-kafka" % "0.18"
 
   lazy val PlayJson = "com.typesafe.play" %% "play-json" % "2.6.7"
 }
