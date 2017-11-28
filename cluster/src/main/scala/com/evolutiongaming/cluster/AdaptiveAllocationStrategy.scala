@@ -43,8 +43,8 @@ class AdaptiveAllocationStrategy(
   proxy: ActorRef,
   val maxSimultaneousRebalance: Int,
   val nodesToDeallocate: () => Set[Address],
-  lowTrafficThreshold: Int = 10)(implicit system: ActorSystem, ec: ExecutionContext)
-  extends ExtendedShardAllocationStrategy with LazyLogging {
+  lowTrafficThreshold: Int = AdaptiveAllocationStrategy.DefaultLowTrafficThreshold)
+  (implicit system: ActorSystem, ec: ExecutionContext) extends ExtendedShardAllocationStrategy with LazyLogging {
 
   import AdaptiveAllocationStrategy._
 
@@ -242,6 +242,8 @@ class AdaptiveAllocationStrategy(
 
 object AdaptiveAllocationStrategy {
 
+  val DefaultLowTrafficThreshold: Int = 10
+
   def apply(
     typeName: String,
     rebalanceThresholdPercent: Int,
@@ -250,7 +252,8 @@ object AdaptiveAllocationStrategy {
     countControl: CountControl.Type = CountControl.Empty,
     fallbackStrategy: ShardAllocationStrategy,
     maxSimultaneousRebalance: Int,
-    nodesToDeallocate: () => Set[Address])
+    nodesToDeallocate: () => Set[Address],
+    lowTrafficThreshold: Int = DefaultLowTrafficThreshold)
     (implicit system: ActorSystem, ec: ExecutionContext): AdaptiveAllocationStrategy = {
     // proxy doesn't depend on typeName, it should just start once
     val proxy = AdaptiveAllocationStrategyDDProxy(system).ref
@@ -263,7 +266,8 @@ object AdaptiveAllocationStrategy {
       fallbackStrategy = fallbackStrategy,
       proxy = proxy,
       maxSimultaneousRebalance = maxSimultaneousRebalance,
-      nodesToDeallocate = nodesToDeallocate)(system, ec)
+      nodesToDeallocate = nodesToDeallocate,
+      lowTrafficThreshold = lowTrafficThreshold)(system, ec)
   }
 
   case class EntityKey(typeName: String, id: ShardRegion.ShardId) {
