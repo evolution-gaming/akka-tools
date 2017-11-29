@@ -200,7 +200,8 @@ class AdaptiveAllocationStrategy(
           val rebalanceThreshold =
             (((correctedHomeValue + nonHomeValuesSum) * rebalanceThresholdPercent) / 100) max lowTrafficThreshold
 
-          logger debug s"Shard:$shardId, " +
+          logger debug s"$typeName:\n" +
+            s"Shard:$shardId, " +
             s"homeValue:$homeValue, " +
             s"correctedHomeValue:$correctedHomeValue, " +
             s"maxNonHomeValue:$maxNonHomeValue, " +
