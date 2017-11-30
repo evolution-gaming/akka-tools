@@ -40,7 +40,7 @@ object Dependencies {
   private val kafkaVersion = "0.11.0.2"
 
   val kafkaClients = "org.apache.kafka" % "kafka-clients" % kafkaVersion
-  val kafkaStream = "com.typesafe.akka" %% "akka-stream-kafka" % "0.18"
+  val kafkaStream = "com.typesafe.akka" %% "akka-stream-kafka" % "0.17"
 
   lazy val PlayJson = "com.typesafe.play" %% "play-json" % "2.6.7"
 }
