@@ -59,7 +59,7 @@ class MappedAllocationStrategy(
 
     val shardsToRebalance = for {
       (ref, shards) <- currentShardAllocations
-      shardId <- shards if !(shardToRegionMapping get EntityKey(typeName, shardId) forall (_ == ref))
+      shardId <- shards if shardToRegionMapping get EntityKey(typeName, shardId) exists (_ != ref)
     } yield shardId
 
     val result = (shardsToRebalance.toSet -- rebalanceInProgress) take maxSimultaneousRebalance
