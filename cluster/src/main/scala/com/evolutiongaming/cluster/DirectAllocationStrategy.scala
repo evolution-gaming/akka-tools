@@ -56,9 +56,9 @@ class DirectAllocationStrategy(
 
     targetAddress match {
       case Some(address) =>
-        logger debug s"Allocate shardId:\t$shardId\n\t" +
-          s"on node:\t$address\n\t" +
-          s"requester:\t$requester\n\t"
+        logger debug s"Allocate shardId:\t$shardId\t" +
+          s"on node:\t$address\t" +
+          s"requester:\t$requester\t"
         Future successful address
       case None =>
         fallbackStrategy.allocateShard(requester, shardId, currentShardAllocations)
@@ -94,11 +94,11 @@ class DirectAllocationStrategy(
       fallbackStrategyResult <- fallbackStrategy.rebalance(fallbackStrategyAllocation, rebalanceInProgress -- ourShards)
     } yield {
       val result = shardsToReallocate ++ fallbackStrategyResult -- rebalanceInProgress
-      if (result.nonEmpty) logger info s"Rebalance\n\t" +
-        s"current:${ currentShardAllocations.mkString("\n\t\t", "\n\t\t", "") }\n\t" +
-        s"shardsToReallocate:\t$shardsToReallocate\n\t" +
-        s"fallbackStrategyResult:\t$fallbackStrategyResult\n\t" +
-        s"rebalanceInProgress:\t$rebalanceInProgress\n\t" +
+      if (result.nonEmpty) logger info s"Rebalance\t" +
+        s"current:${ currentShardAllocations.mkString("\t\t", "\t\t", "") }\t" +
+        s"shardsToReallocate:\t$shardsToReallocate\t" +
+        s"fallbackStrategyResult:\t$fallbackStrategyResult\t" +
+        s"rebalanceInProgress:\t$rebalanceInProgress\t" +
         s"result:\t$result"
       result
     }

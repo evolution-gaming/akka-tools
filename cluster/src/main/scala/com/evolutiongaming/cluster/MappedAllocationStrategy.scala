@@ -39,10 +39,10 @@ class MappedAllocationStrategy(
 
     result match {
       case Some(toNode) =>
-        logger debug s"AllocateShard $typeName\n\t" +
-          s"shardId:\t$shardId\n\t" +
-          s"on node:\t$toNode\n\t" +
-          s"requester:\t$requester\n\t"
+        logger debug s"AllocateShard $typeName\t" +
+          s"shardId:\t$shardId\t" +
+          s"on node:\t$toNode\t" +
+          s"requester:\t$requester\t"
         Future successful toNode
       case None         =>
         logger debug s"AllocateShard fallback $typeName, shardId:\t$shardId"
@@ -66,9 +66,9 @@ class MappedAllocationStrategy(
 
     val result = (shardsToRebalance.toSet -- rebalanceInProgress) take maxSimultaneousRebalance
 
-    if (result.nonEmpty) logger info s"Rebalance $typeName\n\t" +
-      s"current:${ currentShardAllocations.mkString("\n\t\t", "\n\t\t", "") }\n\t" +
-      s"rebalanceInProgress:\t$rebalanceInProgress\n\t" +
+    if (result.nonEmpty) logger info s"Rebalance $typeName\t" +
+      s"current:${ currentShardAllocations.mkString("\t\t", "\t\t", "") }\t" +
+      s"rebalanceInProgress:\t$rebalanceInProgress\t" +
       s"result:\t$result"
 
     Future successful result

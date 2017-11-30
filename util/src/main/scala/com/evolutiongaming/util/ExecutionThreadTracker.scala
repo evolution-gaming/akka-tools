@@ -60,7 +60,7 @@ object ExecutionThreadTracker extends LazyLogging {
                 hangingDatabase.mark()
               } else {
                 val formattedStackTrace = stackTraceToString(stackTrace)
-                logger.error(s"Hanging for $hangingDuration ms dispatcher thread detected: thread $threadName, current state:\n$formattedStackTrace")
+                logger.error(s"Hanging for $hangingDuration ms dispatcher thread detected: thread $threadName, current state:\t$formattedStackTrace")
                 hangingNonDatabase.mark()
               }
             }
