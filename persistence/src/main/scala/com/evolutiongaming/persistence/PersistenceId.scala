@@ -1,5 +1,7 @@
 package com.evolutiongaming.persistence
 
+import com.evolutiongaming.sharding.ShardEntry
+
 import scala.PartialFunction.condOpt
 
 object PersistenceId {
