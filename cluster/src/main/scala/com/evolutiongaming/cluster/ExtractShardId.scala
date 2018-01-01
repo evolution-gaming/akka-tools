@@ -34,11 +34,8 @@ object ExtractShardId extends LazyLogging {
       math.abs(entityId.hashCode % numberOfShards).toString
 
     {
-      case x: ShardedMsg                     =>
-        val entityId = x.id
-        shardId(entityId)
-      case ShardRegion.StartEntity(entityId) =>
-        shardId(entityId)
+      case x: ShardedMsg                     => shardId(x.id)
+      case ShardRegion.StartEntity(entityId) => shardId(entityId)
     }
   }
 
@@ -68,11 +65,8 @@ object ExtractShardId extends LazyLogging {
       }
 
     {
-      case msg: ShardedMsg                       =>
-        val entityId = msg.id
-        shardId(entityId, msg)
-      case msg@ShardRegion.StartEntity(entityId) =>
-        shardId(entityId, msg)
+      case msg: ShardedMsg                       => shardId(msg.id, msg)
+      case msg@ShardRegion.StartEntity(entityId) => shardId(entityId, msg)
     }
   }
 }
