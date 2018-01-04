@@ -61,7 +61,7 @@ object ReplicateJournalToKafka extends LazyLogging {
         "kafka.core.journal")(system)
 
       new Impl(
-        replicateTypes,
+        replicateTypes.toSet,
         bufferSize = bufferSize,
         overflowStrategy = overflowStrategy,
         SerializationExtension(system),
@@ -79,7 +79,7 @@ object ReplicateJournalToKafka extends LazyLogging {
   }
 
   class Impl(
-    replicateTypes: List[String],
+    replicateTypes: Set[String],
     bufferSize: Int,
     overflowStrategy: OverflowStrategy,
     serialization: Serialization,
@@ -115,8 +115,7 @@ object ReplicateJournalToKafka extends LazyLogging {
         case Some(atomicWrite) => result.andThen { case Success(result) if result forall { _.isSuccess } =>
           for {
             (persistenceType, _) <- PersistenceId.unapply(atomicWrite.persistenceId)
-            types <- replicateTypes
-            if types contains persistenceType
+            if replicateTypes contains persistenceType
             atomicWrite <- messages
             persistentRepr <- atomicWrite.payload
           } {

@@ -48,7 +48,7 @@ class ReplicateJournalToKafkaSpec extends WordSpec with Matchers with ActorSpec 
   }
 
   private class Scope extends ActorScope {
-    val persistEntities = List("GameTable")
+    val persistEntities = Set("GameTable")
     
     val materializer = ActorMaterializer()(system)
     val bytes = Array.empty[Byte]
