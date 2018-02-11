@@ -1,9 +1,7 @@
 package com.evolutiongaming.serialization
 
-import java.nio.charset.Charset
 
 import akka.persistence.serialization.Snapshot
-import com.evolutiongaming.util.ToJsonStr
 import com.github.t3hnar.scalax.RichAny
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json._
@@ -23,8 +21,8 @@ class SnapshotJsonSerializer(
       (name, payload) <- bindings.toJson(anyRef)
     } yield {
       val snapshotWithJson = SnapshotWithJson(name, anyRef.getClass.getName, payload)
-      val str = ToJsonStr(snapshotWithJson)
-      str getBytes UTF8
+      val json = Json.toJson(snapshotWithJson)
+      Json.toBytes(json)
     }
 
     result getOrElse fallbackSerializer.toBinary(snapshot)
@@ -45,8 +43,6 @@ class SnapshotJsonSerializer(
 }
 
 object SnapshotJsonSerializer {
-  val UTF8: Charset = Charset.forName("UTF-8")
-
 
   case class SnapshotWithJson(`type`: String, manifest: String, payload: JsObject)
 

@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Xfuture"
   ),
-  crossScalaVersions := Seq("2.12.4", "2.11.11"),
+  crossScalaVersions := Seq("2.12.4", "2.11.12"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
@@ -40,7 +40,7 @@ lazy val akkaTools = (project
   in file(".")
   settings (name := "akka-tools")
   settings allSettings
-  aggregate(instrumentation, cluster, persistence, serialization, util, test, replicate2kafka))
+  aggregate(instrumentation, cluster, persistence, serialization, util, test))
 
 lazy val instrumentation = (project
   in file("instrumentation")
@@ -53,44 +53,63 @@ lazy val cluster = (project
   in file("cluster")
   dependsOn (test % "test->compile")
   settings (name := "akka-tools-cluster")
-  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.Cluster, Akka.ClusterSharding, Akka.TestKit % Test,
-    Logging, MetricsCore, ScalaTools, MockitoCore % Test, ScalaTest % Test))
+  settings (libraryDependencies ++= Seq(
+    Akka.Actor,
+    Akka.Cluster,
+    Akka.ClusterSharding,
+    Akka.TestKit % Test,
+    Logging,
+    MetricsCore,
+    ScalaTools,
+    Nel,
+    MockitoCore % Test,
+    ScalaTest % Test))
   settings allSettings)
 
 lazy val persistence = (project
   in file("persistence")
   dependsOn (serialization, test % "test->compile")
   settings (name := "akka-tools-persistence")
-  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.AkkaPersistence, ScalaTools,
-    Akka.TestKit % "test", ScalaTest % "test"))
+  settings (libraryDependencies ++= Seq(
+    Akka.Actor,
+    Akka.AkkaPersistence,
+    ScalaTools,
+    Akka.TestKit % Test,
+    ScalaTest % Test))
   settings allSettings)
 
 lazy val serialization = (project
   in file("serialization")
   dependsOn (test % "test->compile")
   settings (name := "akka-tools-serialization")
-  settings (libraryDependencies ++= Seq(Akka.Actor, Logging, ChillAkka, PlayJson, scalax,
-    Akka.AkkaPersistence, playJsonTools, ScalaTest % "test"))
+  settings (libraryDependencies ++= Seq(
+    Akka.Actor,
+    Logging,
+    ChillAkka,
+    PlayJson,
+    scalax,
+    Akka.AkkaPersistence,
+    playJsonTools,
+    Nel,
+    ScalaTest % Test))
   settings allSettings)
 
 lazy val util = (project
   in file("util")
   dependsOn (test % "test->compile")
   settings (name := "akka-tools-util")
-  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit % "test", ScalaTest % "test",
-    MetricTools, MetricsCore, Logging, Guava))
+  settings (libraryDependencies ++= Seq(
+    Akka.Actor,
+    Akka.TestKit % Test,
+    ScalaTest % Test,
+    MetricTools,
+    MetricsCore,
+    Logging,
+    Guava))
   settings allSettings)
 
 lazy val test = (project
   in file("test")
   settings (name := "akka-tools-test")
   settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit, ScalaTest))
-  settings allSettings)
-
-lazy val replicate2kafka = (project
-  in file("replicate2kafka")
-  dependsOn (persistence, test % "test->compile")
-  settings (name := "akka-tools-replicate2kafka")
-  settings (libraryDependencies ++=
-    Seq(Akka.Actor, Akka.AkkaPersistence, Logging, kafkaClients, kafkaStream, ScalaTools, ScalaTest % Test, MockitoCore % Test))
   settings allSettings)

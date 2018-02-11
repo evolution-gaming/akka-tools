@@ -3,7 +3,6 @@ package com.evolutiongaming.serialization
 import java.nio.charset.Charset
 
 import akka.persistence.PersistentRepr
-import com.evolutiongaming.util.ToJsonStr
 import com.github.t3hnar.scalax._
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json._
@@ -18,8 +17,9 @@ class PersistentReprSerializer(bindings: Bindings, fallbackSerializer: akka.seri
       payload <- x.payload.asInstanceOfOpt[AnyRef]
       (name, data) <- bindings.toJson(payload)
     } yield {
-      val str = ToJsonStr(ReprWithJson(name, data, x))
-      str getBytes UTF8
+      val reprWithJson = ReprWithJson(name, data, x)
+      val json = Json.toJson(reprWithJson)
+      Json.toBytes(json)
     }
     result getOrElse fallbackSerializer.toBinary(x)
   }

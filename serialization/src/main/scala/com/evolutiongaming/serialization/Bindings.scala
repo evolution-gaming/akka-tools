@@ -1,6 +1,6 @@
 package com.evolutiongaming.serialization
 
-import com.evolutiongaming.util.Nel
+import com.evolutiongaming.nel.Nel
 import com.github.t3hnar.scalax._
 import play.api.libs.json._
 

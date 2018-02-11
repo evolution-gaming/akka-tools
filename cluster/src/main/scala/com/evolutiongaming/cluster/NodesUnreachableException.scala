@@ -1,7 +1,7 @@
 package com.evolutiongaming.cluster
 
 import akka.actor.{ActorSystem, Address}
-import com.evolutiongaming.util.Nel
+import com.evolutiongaming.nel.Nel
 
 import scala.concurrent.TimeoutException
 
