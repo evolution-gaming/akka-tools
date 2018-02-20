@@ -5,11 +5,12 @@ import java.nio.charset.Charset
 import akka.persistence.PersistentRepr
 import com.evolutiongaming.util.ToJsonStr
 import com.github.t3hnar.scalax._
+import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json._
 
-import scala.util.Try
+import scala.util._
 
-class PersistentReprSerializer(bindings: Bindings, fallbackSerializer: akka.serialization.Serializer) {
+class PersistentReprSerializer(bindings: Bindings, fallbackSerializer: akka.serialization.Serializer) extends LazyLogging {
   import PersistentReprSerializer._
 
   def toBinary(x: PersistentRepr): Array[Byte] = {
@@ -23,16 +24,18 @@ class PersistentReprSerializer(bindings: Bindings, fallbackSerializer: akka.seri
     result getOrElse fallbackSerializer.toBinary(x)
   }
 
-  def fromBinary(bytes: Array[Byte]): PersistentRepr = {
-    Try(Json parse bytes).toOption map { json =>
-      val reprWithJson = json.as[ReprWithJson]
-      val payload = bindings.fromJsonOrError(reprWithJson.`type`, reprWithJson.payload)
-      reprWithJson.persistentRepr(payload)
-    } getOrElse {
-      val anyRef = fallbackSerializer.fromBinary(bytes, classOf[PersistentRepr])
-      anyRef.asInstanceOf[PersistentRepr]
+  def fromBinary(bytes: Array[Byte]): PersistentRepr =
+    Try(Json.parse(bytes)) match {
+      case Success(json) =>
+        val reprWithJson = json.as[ReprWithJson]
+        val payload = bindings.fromJsonOrError(reprWithJson.`type`, reprWithJson.payload)
+        reprWithJson.persistentRepr(payload)
+
+      case Failure(t) =>
+        logger.error(s"Error parsing JSON PersistentRepr ${ new String(bytes) }", t)
+        val anyRef = fallbackSerializer.fromBinary(bytes, classOf[PersistentRepr])
+        anyRef.asInstanceOf[PersistentRepr]
     }
-  }
 
 }
 
