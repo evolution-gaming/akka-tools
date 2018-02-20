@@ -12,6 +12,6 @@ object PersistenceId {
   def unapply(persistenceId: String): Option[(String, String)] =
     persistenceId.lastIndexOf("-") match {
       case -1 => None
-      case i  => Some(persistenceId.splitAt(i))
+      case i  => Some(persistenceId.take(i) -> persistenceId.drop(i + 1))
     }
 }
