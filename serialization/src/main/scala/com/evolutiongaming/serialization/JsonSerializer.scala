@@ -24,7 +24,6 @@ class JsonSerializer(val system: ExtendedActorSystem) extends SerializerWithStri
   private lazy val binarySerializer: akka.serialization.Serializer = {
     val serialization = SerializationExtension(system)
     val serializer = serialization.serializerByIdentity.get(8675309) // com.twitter.chill.akka.AkkaSerializer.identifier
-    for {serializer <- serializer} require(serializer.isInstanceOf[AkkaSerializer])
     serializer getOrElse {
       logger.warn(s"${classOf[AkkaSerializer].getName} not found, using JavaSerializer instead")
       SerializerOf[akka.serialization.JavaSerializer](system)
