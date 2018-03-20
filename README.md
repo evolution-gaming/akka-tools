@@ -2,7 +2,7 @@
 
 ### ExtractShardId
 ExtractShardId is an interface of the function used by Akka sharding to extract ShardId from an incoming message.
-Our implementation of ExtractShardId supports mapping of specific EntityId-s to specific ShardId-s. 
+Our implementation of ExtractShardId supports mapping of specific EntityId-s to specific ShardId-s.
 All other not pre-configured EntityId-s will be mapped to equal individual ShardId-s.
 
 ## Setup
@@ -10,5 +10,5 @@ All other not pre-configured EntityId-s will be mapped to equal individual Shard
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "akka-tools" % "1.3.18"
+libraryDependencies += "com.evolutiongaming" %% "akka-tools" % "1.4.2"
 ```
