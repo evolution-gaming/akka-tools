@@ -46,7 +46,7 @@ lazy val instrumentation = (project
   in file("instrumentation")
   dependsOn util
   settings (name := "akka-tools-instrumentation")
-  settings (libraryDependencies ++= Seq(Akka.Actor, ScalaTools, MetricTools, MetricsCore))
+  settings (libraryDependencies ++= Seq(Akka.Actor, ConfigTools, MetricTools, MetricsCore))
   settings allSettings)
 
 lazy val cluster = (project
@@ -60,8 +60,9 @@ lazy val cluster = (project
     Akka.TestKit % Test,
     Logging,
     MetricsCore,
-    ScalaTools,
+    ConfigTools,
     Nel,
+    scalax,
     MockitoCore % Test,
     ScalaTest % Test))
   settings allSettings)
@@ -73,7 +74,7 @@ lazy val persistence = (project
   settings (libraryDependencies ++= Seq(
     Akka.Actor,
     Akka.AkkaPersistence,
-    ScalaTools,
+    ConfigTools,
     Akka.TestKit % Test,
     ScalaTest % Test))
   settings allSettings)
@@ -86,7 +87,6 @@ lazy val serialization = (project
     Akka.Actor,
     Logging,
     ChillAkka,
-    PlayJson,
     scalax,
     Akka.AkkaPersistence,
     playJsonTools,

@@ -1,6 +1,6 @@
 package com.evolutiongaming.util.dispatchers
 
-import com.evolutiongaming.util.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper._
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._

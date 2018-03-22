@@ -16,7 +16,7 @@
 package com.evolutiongaming.cluster
 
 import akka.cluster.sharding.ShardRegion
-import com.evolutiongaming.util.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
 

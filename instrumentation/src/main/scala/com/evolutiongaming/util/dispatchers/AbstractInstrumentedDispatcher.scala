@@ -2,7 +2,7 @@ package com.evolutiongaming.util.dispatchers
 
 import akka.dispatch._
 import com.codahale.metrics.MetricRegistry
-import com.evolutiongaming.util.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper._
 import com.typesafe.config.Config
 
 /** Instrumented clone of [[akka.dispatch.DispatcherConfigurator]]. */

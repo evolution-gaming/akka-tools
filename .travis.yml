@@ -23,3 +23,12 @@ env:
   global:
   - secure: BO9XIMoMUyynd8+ZPPMjbVeDFV8840ykzvM0XEsfOEwf/LF7l1Urq9wyvj9ralfGX2OjkrhZEKeKAZjIec9COOOrA860YaOTEEfn4q1zfPfec3LQkRm9gFrR/yYfOSFJeoMyNChGru7dqb2PSAnxSDcK+MDSrJjtVv6+GqZFEePz9AL49thJ8k0GCarEcQcfXOBnSKdFSEz/lGjO8mu1nrfxL5wYHz1LB/66uQ9oQFWyRV1l4man+5jO3tKOoCq3MR/WM5WvpcVIZgIfgiAhpUIcJxcz1V1JTzwOs/WMLm0mUWqjAC0loK5lWF7x2a1T5WuxRFNsLstu5Rl59d2GNMLr5EfVDWPlDnJkagEIB7rlAtxVeqSp2Fn3oJ1Xis99cFqW/juZ4dIGipfmsVUuRzUxVx5d5h7Z0CzNYlhvjsJTmJVE+vIkOJOTGFOgDpkJiyMWAr2ytARNqdy24jFhje5antKStmRgDIWBI2jKwsE11S/2UQ64rHE0+CHNwmcQJypm/TYZmQAVoiiYDBWPz39ZfIFy22zg9Cymz/6WbiL+kvfEdlfy/thdxk0HK3ihj3aEiNfxbecyySunHjcy0bHZad4BuCu9JWz5xDkch6IYMrDZLh4HyK3aRXgKKPRFVzRua7cZZ1UQk+mqUmzR/yAZWs5MCz+h5QT4dB4o/Ps=
   - secure: C6NtnZM18aiZ3SAuR66P/7HApGS2ALGiKpmQOnS71vTSY0Mr6U+sUmkdv+lcshto36V93O/JSnOFbs3x+a3V+F6SzUmuIBLIFM+e1MHBpHB75EHEnFaF2k1b5rku/ZHL2wDxJsCUk/Hf2RAhrre8AnFgFzmEJpZIK+WZwbpRA8quwZ2i6KPnpLGVwu7Z499aM6FBUiUqZsGJ6/wJSa5au22Sr8zssS0Ok7HW6efQR+dNzBY5qtrqmYSTExtAZ1EW37jdWO6anY/3Hw60GtrPBA1s/Wy7t6B8TrgiV+y89/ACVaJZmZ0e865HvNufcV0ip42FRjwaflICHI4bloDsMk2q3FuN82BLIc2WuM4VY443VJ2fjo1uV70jL3s5b2pmzuZVjSsDVOk9CMFUuzfXJhH8zw+b3w2xJT7dwx7jsQIjOuhSOZyAb8P8OGNp78UI0smeFzwzCuGA30g71KrVfylYqmH7xfUqrtc/k22DdZlall9GqV8DWD6B1hoKRmE8zIlBms1S2iTG92nxblgG0dFgerV1AgFcXjsKoagTKxn0jVY183D3xTmg8jwoEXwFjVk6SMwDcnX4x0Q2vMYegATut9R5W7QeAOKWZ2lRWGjDpsikRqDnb1o/YXSGELdEWXJ9Hf5ys4KMlSQz+fNYd8/heg0dhqUbBldPcM/25I8=
+
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+
+before_cache:
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt        -name "*.lock"               -print -delete
