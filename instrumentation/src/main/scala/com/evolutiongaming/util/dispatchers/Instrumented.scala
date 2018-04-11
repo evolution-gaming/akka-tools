@@ -92,7 +92,12 @@ object Instrumented {
     }
 
     def executionTracker(name: String, config: InstrumentedConfig.ExecutionTracker, registry: MetricRegistry): Instrument = {
-      val tracker = ExecutionThreadTracker(config.hangingThreshold, registry, name)
+      val tracker = ExecutionThreadTracker(
+        hangingThreshold = config.hangingThreshold,
+        checkInterval = config.checkInterval,
+        registry = registry,
+        name = name)
+          
       () => {
         () => {
           val stop = tracker.start()

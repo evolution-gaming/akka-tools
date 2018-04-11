@@ -2,7 +2,7 @@ import Dependencies._
 import sbt.Keys.{homepage, organizationName, startYear}
 
 lazy val thisBuildSettings = inThisBuild(List(
-  scalaVersion := "2.12.4"
+  scalaVersion := "2.12.5"
 ))
 
 lazy val commonSettings = Seq(
@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Xfuture"
   ),
-  crossScalaVersions := Seq("2.12.4", "2.11.12"),
+  crossScalaVersions := Seq("2.12.5", "2.11.12"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
@@ -104,8 +104,7 @@ lazy val util = (project
     ScalaTest % Test,
     MetricTools,
     MetricsCore,
-    Logging,
-    Guava))
+    Logging))
   settings allSettings)
 
 lazy val test = (project
