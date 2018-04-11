@@ -43,7 +43,7 @@ object ExecutionThreadTracker extends LazyLogging {
     threads: ThreadMXBean = threads,
     executorService: ScheduledExecutorService = executorService): ExecutionThreadTracker = {
 
-    val map = TrieMap.empty[ThreadId, StartTime]
+    val cache = TrieMap.empty[ThreadId, StartTime]
 
     val hanging = registry meter s"$name.hanging"
     val hangingDatabase = registry meter s"$name.hanging.database"
@@ -54,10 +54,10 @@ object ExecutionThreadTracker extends LazyLogging {
         try {
           val currentTime = Platform.currentTime
           for {
-            (threadId, startTime) <- map
+            (threadId, startTime) <- cache
             duration = (currentTime - startTime).millis
             if duration >= hangingThreshold
-            _ <- map.remove(threadId)
+            _ <- cache.remove(threadId)
             threadInfo <- Option(threads.getThreadInfo(threadId, maxDepth))
           } {
             val threadName = threadInfo.getThreadName
@@ -82,12 +82,12 @@ object ExecutionThreadTracker extends LazyLogging {
 
     val add = (threadId: ThreadId) => {
       val startTime = Platform.currentTime
-      map.put(threadId, startTime)
+      cache.put(threadId, startTime)
       ()
     }
 
     val remove = (threadId: ThreadId) => {
-      map.remove(threadId)
+      cache.remove(threadId)
       ()
     }
 
