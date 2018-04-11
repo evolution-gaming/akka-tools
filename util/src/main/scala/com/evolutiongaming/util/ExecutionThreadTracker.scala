@@ -36,6 +36,18 @@ object ExecutionThreadTracker extends LazyLogging {
 
   def apply(
     hangingThreshold: FiniteDuration,
+    registry: MetricRegistry,
+    name: String): ExecutionThreadTracker = {
+
+    apply(
+      hangingThreshold = hangingThreshold,
+      checkInterval = 1.second,
+      registry = registry,
+      name = name)
+  }
+
+  def apply(
+    hangingThreshold: FiniteDuration,
     checkInterval: FiniteDuration,
     registry: MetricRegistry,
     name: String,
