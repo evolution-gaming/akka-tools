@@ -10,6 +10,12 @@ class ExtractShardIdSpec extends FlatSpec
     ExtractShardId.identity(msg("id")) shouldBe "id"
   }
 
+  "ExtractShardId.identityCustom" should "map EntityId directly to ShardId with custom transformation" in new Scope {
+    ExtractShardId.identityCustom(_.split("-", 2).head)(msg("id")) shouldBe "id"
+    ExtractShardId.identityCustom(_.split("-", 2).head)(msg("id-blahblah")) shouldBe "id"
+    ExtractShardId.identityCustom(_.split("-", 2).head)(msg("id----asdg---")) shouldBe "id"
+  }
+
   "ExtractShardId.uniform" should "uniformly distribute EntityId-s across predefined number of ShardId-s" in new Scope {
     val extractShardId = ExtractShardId.uniform(10)
     extractShardId(msg("1")) shouldBe "9"

@@ -29,6 +29,11 @@ object ExtractShardId extends LazyLogging {
     case ShardRegion.StartEntity(id) => id
   }
 
+  def identityCustom(extractShardIdPart: String => String): ShardRegion.ExtractShardId = {
+    case x: ShardedMsg               => extractShardIdPart(x.id)
+    case ShardRegion.StartEntity(id) => extractShardIdPart(id)
+  }
+
   def uniform(numberOfShards: Int): ShardRegion.ExtractShardId = {
     def shardId(entityId: ShardRegion.EntityId): ShardRegion.ShardId =
       math.abs(entityId.hashCode % numberOfShards).toString
