@@ -3,6 +3,7 @@ package com.evolutiongaming.cluster
 import com.evolutiongaming.test.ActorSpec
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.{Matchers, WordSpec}
+import play.api.libs.json.Format
 
 class ShardedRefSpec extends WordSpec with ActorSpec with ScalaFutures with Matchers {
 
@@ -69,9 +70,13 @@ class ShardedRefSpec extends WordSpec with ActorSpec with ScalaFutures with Matc
 
     implicit def duration = timeout.duration
 
-    case object In
-    case object Out
-    case object Unsafe
+    sealed trait Msg
+
+    case object In extends Msg
+    case object Out extends Msg
+    case object Unsafe extends Msg
+
+    implicit val MsgFormat: Format[Msg] = null
   }
 
   private trait ImplScope extends Scope {
