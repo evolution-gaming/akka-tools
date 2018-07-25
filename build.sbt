@@ -12,7 +12,7 @@ lazy val commonSettings = Seq(
     "-feature",
     "-unchecked",
     "-deprecation",
-    "-Xfatal-warnings",
+//    "-Xfatal-warnings",
     "-Xlint",
     "-Yno-adapted-args",
     "-Ywarn-dead-code",
@@ -63,6 +63,7 @@ lazy val cluster = (project
     ConfigTools,
     Nel,
     scalax,
+    PlayJson,
     MockitoCore % Test,
     ScalaTest % Test))
   settings allSettings)

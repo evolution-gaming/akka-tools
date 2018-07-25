@@ -2,6 +2,7 @@ package com.evolutiongaming.cluster
 
 import akka.actor.ActorRef
 import akka.cluster.sharding.ShardRegion.ShardId
+import play.api.libs.json.Writes
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -24,11 +25,11 @@ object ShardedRef {
   def apply[Id, In <: Serializable, Out](
     ref: ActorRef,
     idToStr: Id => String = (id: Id) => id.toString)
-    (implicit tag: ClassTag[Out]): ShardedRef[Id, In, Out] = new Impl(ref, idToStr)
+    (implicit tag: ClassTag[Out], inWrites: Writes[In], outWrites: Writes[Out]): ShardedRef[Id, In, Out] = new Impl(ref, idToStr)
 
 
-  abstract class AbstractShardedRef[Id, In <: Serializable, Out](implicit tag: ClassTag[Out])
-    extends ShardedRef[Id, In, Out] {
+  abstract class AbstractShardedRef[Id, In <: Serializable, Out]
+  (implicit tag: ClassTag[Out], inWrites: Writes[In], outWrites: Writes[Out]) extends ShardedRef[Id, In, Out] {
 
     def tell(id: Id, in: In, sender: ActorRef = ActorRef.noSender): Unit = {
       tellUnsafe(id, in, sender)
@@ -43,7 +44,7 @@ object ShardedRef {
   class Impl[Id, In <: Serializable, Out](
     ref: ActorRef,
     idToStr: Id => ShardId = (id: Id) => id.toString)
-    (implicit tag: ClassTag[Out]) extends AbstractShardedRef[Id, In, Out] {
+    (implicit tag: ClassTag[Out], inWrites: Writes[In], outWrites: Writes[Out]) extends AbstractShardedRef[Id, In, Out] {
 
     def askUnsafe(id: Id, in: Serializable)(implicit timeout: FiniteDuration): Future[Any] = {
       val shardedMsg = toShardedMsg(id, in)
@@ -61,7 +62,7 @@ object ShardedRef {
   }
 
 
-  class Proxy[Id, In <: Serializable, Out](ref: ActorRef)(implicit tag: ClassTag[Out])
+  class Proxy[Id, In <: Serializable, Out](ref: ActorRef)(implicit tag: ClassTag[Out], inWrites: Writes[In], outWrites: Writes[Out])
     extends AbstractShardedRef[Id, In, Out] {
 
     def tellUnsafe(id: Id, in: Serializable, sender: ActorRef = ActorRef.noSender): Unit = {
@@ -77,7 +78,7 @@ object ShardedRef {
 
   object Proxy {
     def apply[Id, In <: Serializable, Out](ref: ActorRef)
-      (implicit tag: ClassTag[Out]): ShardedRef[Id, In, Out] = new Proxy(ref)
+      (implicit tag: ClassTag[Out], inWrites: Writes[In], outWrites: Writes[Out]): ShardedRef[Id, In, Out] = new Proxy(ref)
   }
 }
 
@@ -99,7 +100,8 @@ object ShardedSingletonRef {
     new Impl(id, ref)
   }
 
-  def apply[Id, In <: Serializable, Out](id: Id, ref: ActorRef)(implicit tag: ClassTag[Out]): ShardedSingletonRef[In, Out] = {
+  def apply[Id, In <: Serializable, Out](id: Id, ref: ActorRef)
+    (implicit tag: ClassTag[Out], inWrites: Writes[In], outWrites: Writes[Out]): ShardedSingletonRef[In, Out] = {
     val shardedRef = ShardedRef[Id, In, Out](ref)
     ShardedSingletonRef(id, shardedRef)
   }

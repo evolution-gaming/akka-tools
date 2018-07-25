@@ -16,6 +16,12 @@ object Dependencies {
     val TestKit =         "com.typesafe.akka" %% "akka-testkit" % version
   }
 
+  lazy val PlayJson = "com.typesafe.play" %% "play-json" % "2.6.9" % Compile excludeAll (
+    ExclusionRule("org.scala-lang", "scala-reflect"),
+    ExclusionRule("com.fasterxml.jackson.core", "jackson-annotations"),
+    ExclusionRule("com.fasterxml.jackson.core", "jackson-core"),
+    ExclusionRule("com.fasterxml.jackson.core", "jackson-databind"))
+
   lazy val ScalaTest = "org.scalatest" %% "scalatest" % "3.0.5"
   lazy val MetricTools = "com.evolutiongaming" %% "metric-tools" % "1.1"
   lazy val MetricsCore = "io.dropwizard.metrics" % "metrics-core" % "3.2.6"
