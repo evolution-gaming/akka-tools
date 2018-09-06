@@ -1,5 +1,7 @@
 package com.evolutiongaming.util
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import akka.actor._
 
 import scala.concurrent.ExecutionContext
@@ -10,7 +12,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 class Scheduler(scheduler: akka.actor.Scheduler) extends Extension {
 
-  private var shuttingDown: Boolean = false
+  private val shuttingDown = new AtomicBoolean(false)
 
   def schedule(
     initialDelay: FiniteDuration,
@@ -128,11 +130,11 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension {
 
 
   def shutdown(): Unit = {
-    shuttingDown = true
+    shuttingDown.set(true)
   }
 
   private def run(runOnShutdown: Boolean, f: => Unit) = {
-    if (!shuttingDown || runOnShutdown) f
+    if (!shuttingDown.get() || runOnShutdown) f
   }
 }
 

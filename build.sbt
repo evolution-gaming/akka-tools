@@ -1,10 +1,6 @@
 import Dependencies._
 import sbt.Keys.{homepage, organizationName, startYear}
 
-lazy val thisBuildSettings = inThisBuild(List(
-  scalaVersion := "2.12.5"
-))
-
 lazy val commonSettings = Seq(
   scalacOptions in(Compile, doc) ++= Seq("-no-link-warnings"),
   scalacOptions ++= Seq(
@@ -19,7 +15,8 @@ lazy val commonSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Xfuture"
   ),
-  crossScalaVersions := Seq("2.12.5", "2.11.12"),
+  scalaVersion := crossScalaVersions.value.last,
+  crossScalaVersions := Seq("2.11.12", "2.12.6"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
@@ -34,7 +31,7 @@ lazy val publishSettings = Seq(
   licenses := Seq("MIT" -> url("http://www.opensource.org/licenses/mit-license.html"))
 )
 
-lazy val allSettings = thisBuildSettings ++ commonSettings ++ publishSettings
+lazy val allSettings = commonSettings ++ publishSettings
 
 lazy val akkaTools = (project
   in file(".")
@@ -63,7 +60,6 @@ lazy val cluster = (project
     ConfigTools,
     Nel,
     scalax,
-    MockitoCore % Test,
     ScalaTest % Test))
   settings allSettings)
 
