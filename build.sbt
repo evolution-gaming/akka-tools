@@ -16,7 +16,7 @@ lazy val commonSettings = Seq(
     "-Xfuture"
   ),
   scalaVersion := crossScalaVersions.value.last,
-  crossScalaVersions := Seq("2.11.12", "2.12.6"),
+  crossScalaVersions := Seq("2.11.12", "2.12.7"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
