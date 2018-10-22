@@ -17,10 +17,14 @@ class NodesUnreachableException(addresses: Nel[Address], cause: Throwable) exten
 
 object NodesUnreachableException {
 
-  def opt(timeoutException: TimeoutException, system: ActorSystem, role: String): Option[NodesUnreachableException] =
+  def opt(
+    timeoutException: TimeoutException,
+    system: ActorSystem,
+    role: Option[String] = None
+  ): Option[NodesUnreachableException] =
     ClusterOpt(system).flatMap(c =>
       Nel
-        .opt(c.state.unreachable.collect { case m if m.roles.contains(role) => m.address })
+        .opt(c.state.unreachable.collect { case m if role.forall(m.roles.contains) => m.address })
         .map(new NodesUnreachableException(_, timeoutException))
     )
 
