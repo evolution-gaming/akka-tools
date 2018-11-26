@@ -69,7 +69,6 @@ lazy val persistence = (project
   settings (name := "akka-tools-persistence")
   settings (libraryDependencies ++= Seq(
     Akka.Actor,
-    Akka.AkkaPersistence,
     ConfigTools,
     Akka.TestKit % Test,
     ScalaTest % Test))
