@@ -15,8 +15,8 @@ lazy val commonSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Xfuture"
   ),
-  scalaVersion := crossScalaVersions.value.last,
-  crossScalaVersions := Seq("2.11.12", "2.12.7"),
+  scalaVersion := crossScalaVersions.value.head,
+  crossScalaVersions := Seq("2.12.8"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
@@ -81,11 +81,8 @@ lazy val serialization = (project
   settings (libraryDependencies ++= Seq(
     Akka.Actor,
     Logging,
-    ChillAkka,
     scalax,
     Akka.AkkaPersistence,
-    playJsonTools,
-    Nel,
     ScalaTest % Test))
   settings allSettings)
 

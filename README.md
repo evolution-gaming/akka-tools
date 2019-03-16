@@ -10,5 +10,5 @@ All other not pre-configured EntityId-s will be mapped to equal individual Shard
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "akka-tools" % "1.4.2"
+libraryDependencies += "com.evolutiongaming" %% "akka-tools" % "3.0.0"
 ```
