@@ -1,5 +1,7 @@
 package com.evolutiongaming.test
 
+import java.util.concurrent.Executors
+
 import akka.actor.ActorSystem
 import akka.testkit.{DefaultTimeout, ImplicitSender, TestKit}
 import com.typesafe.config.Config
@@ -14,7 +16,12 @@ trait ActorSpec extends BeforeAndAfterAll { this: Suite =>
     config = Some(config),
     defaultExecutionContext = defaultExecutionContext)
 
-  def defaultExecutionContext: Option[ExecutionContext] = Some(ExecutionContext.global)
+  def defaultExecutionContext: Option[ExecutionContext] = {
+    val parallelism = 4 + Runtime.getRuntime.availableProcessors() * 2
+    val es = Executors.newWorkStealingPool(parallelism)
+    val ec = ExecutionContext.fromExecutorService(es)
+    Some(ec)
+  }
 
   def config: Config = TestConfig()
 
