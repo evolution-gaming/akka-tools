@@ -10,42 +10,9 @@ import org.slf4j.MDC
 import scala.compat.Platform
 import scala.compat.Platform._
 
-class Instrumented(config: InstrumentedConfig, registry: MetricRegistry) {
-  import Instrumented._
+trait Instrumented {
 
-  private val instruments: List[Instrument] = {
-    val name = config.id.replace('.', '-')
-    val mdc = if (config.mdc) Some(Instrument.Mdc) else None
-    val metrics = if (config.metrics) Some(Instrument.metrics(name, registry, new LongAdder)) else None
-    val executionTracker = config.executionTracker map { Instrument.executionTracker(name, _, registry) }
-    val result = (mdc ++ metrics ++ executionTracker).toList
-    result
-  }
-
-  def apply(runnable: Runnable, execute: Runnable => Unit): Unit = {
-    val beforeRuns = for {f <- instruments} yield f()
-    val run = new Run {
-      def apply[T](run: () => T): T = {
-        val afterRuns = for {f <- beforeRuns} yield f()
-        try run() finally for {f <- afterRuns} f()
-      }
-    }
-    val overridden = OverrideRunnable(runnable, run)
-    execute(overridden)
-  }
-
-  object OverrideRunnable {
-
-    def apply(runnable: Runnable, r: Run): Runnable = runnable match {
-      case OverrideAkkaRunnable(runnable)  => runnable(r)
-      case OverrideScalaRunnable(runnable) => runnable(r)
-      case runnable                        => new Default(runnable, r)
-    }
-
-    class Default(self: Runnable, r: Run) extends Runnable {
-      def run(): Unit = r(() => self.run())
-    }
-  }
+  def apply(runnable: Runnable, execute: Runnable => Unit): Unit
 }
 
 object Instrumented {
@@ -54,6 +21,53 @@ object Instrumented {
   type Instrument = () => BeforeRun
   type BeforeRun = () => AfterRun
   type AfterRun = () => Unit
+
+
+  def apply(config: InstrumentedConfig, registry: MetricRegistry): Instrumented = {
+
+    val instruments: List[Instrument] = {
+      val name = config.id.replace('.', '-')
+      val mdc = if (config.mdc) Some(Instrument.Mdc) else None
+      val metrics = if (config.metrics) Some(Instrument.metrics(name, registry, new LongAdder)) else None
+      val executionTracker = config.executionTracker map { Instrument.executionTracker(name, _, registry) }
+      val result = (mdc ++ metrics ++ executionTracker).toList
+      result
+    }
+
+    apply(instruments)
+  }
+
+  def apply(instruments: List[Instrument]): Instrumented = {
+
+    object OverrideRunnable {
+
+      def apply(runnable: Runnable, r: Run): Runnable = runnable match {
+        case OverrideAkkaRunnable(runnable)  => runnable(r)
+        case OverrideScalaRunnable(runnable) => runnable(r)
+        case runnable                        => new Default(runnable, r)
+      }
+
+      class Default(self: Runnable, r: Run) extends Runnable {
+        def run(): Unit = r(() => self.run())
+      }
+    }
+
+    new Instrumented {
+
+      def apply(runnable: Runnable, execute: Runnable => Unit): Unit = {
+        val beforeRuns = for {f <- instruments} yield f()
+        val run = new Run {
+          def apply[T](run: () => T): T = {
+            val afterRuns = for {f <- beforeRuns} yield f()
+            try run() finally for {f <- afterRuns} f()
+          }
+        }
+        val overridden = OverrideRunnable(runnable, run)
+        execute(overridden)
+      }
+    }
+  }
+
 
   object Instrument {
     val Empty: Instrument = () => () => () => ()
@@ -97,7 +111,7 @@ object Instrumented {
         checkInterval = config.checkInterval,
         registry = registry,
         name = name)
-          
+
       () => {
         () => {
           val stop = tracker.start()

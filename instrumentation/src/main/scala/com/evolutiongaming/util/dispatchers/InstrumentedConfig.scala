@@ -15,9 +15,9 @@ object InstrumentedConfig {
 
   def apply(config: Config): InstrumentedConfig = {
     InstrumentedConfig(
-      id = config.getString("id"),
+      id = config.get[String]("id"),
       mdc = config.getOpt[Boolean]("mdc") getOrElse false,
-      metrics = config.getOpt[Boolean]("metrics") getOrElse true,
+      metrics = config.getOpt[Boolean]("metrics") getOrElse false,
       executionTracker = config.getOpt[Config]("execution-tracker") flatMap ExecutionTracker.opt)
   }
 
@@ -27,7 +27,7 @@ object InstrumentedConfig {
     checkInterval: FiniteDuration = 1.seconds)
 
   object ExecutionTracker {
-    lazy val Default: ExecutionTracker = ExecutionTracker()
+    val Default: ExecutionTracker = ExecutionTracker()
 
     def opt(config: Config): Option[ExecutionTracker] = {
       def executionTracker = ExecutionTracker(

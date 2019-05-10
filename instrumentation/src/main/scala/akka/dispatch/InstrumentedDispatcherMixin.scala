@@ -10,7 +10,7 @@ trait InstrumentedDispatcherMixin extends Dispatcher {
 
   private lazy val instrumented = {
     val config = InstrumentedConfig(configurator.config)
-    new Instrumented(config, metricRegistry)
+    Instrumented(config, metricRegistry)
   }
 
   override def execute(runnable: Runnable): Unit = {
@@ -20,7 +20,11 @@ trait InstrumentedDispatcherMixin extends Dispatcher {
   /**
     * Clone of [[Dispatcher.executorServiceFactoryProvider]]
     */
-  protected[akka] override def registerForExecution(mbox: Mailbox, hasMessageHint: Boolean, hasSystemMessageHint: Boolean): Boolean = {
+  protected[akka] override def registerForExecution(
+    mbox: Mailbox,
+    hasMessageHint: Boolean,
+    hasSystemMessageHint: Boolean
+  ): Boolean = {
     if (mbox.canBeScheduledForExecution(hasMessageHint, hasSystemMessageHint)) { //This needs to be here to ensure thread safety and no races
       if (mbox.setAsScheduled()) {
         try {
