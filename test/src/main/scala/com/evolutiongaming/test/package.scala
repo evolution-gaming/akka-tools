@@ -13,6 +13,7 @@ package object test {
       def apply(x: Any): Unit = {
         self lift x
         receive lift x
+        ()
       }
     }
   }

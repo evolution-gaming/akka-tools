@@ -27,12 +27,12 @@ class FutureSequentialForKeySpec extends WordSpec with ActorSpec with Matchers w
 
         fishForMessage() {
           case "key2" => false
-          case key1   => true
+          case _   => true
         } shouldEqual "key1-1"
 
         fishForMessage() {
           case "key2" => false
-          case key1   => true
+          case _   => true
         } shouldEqual "key1-2"
       }
     }

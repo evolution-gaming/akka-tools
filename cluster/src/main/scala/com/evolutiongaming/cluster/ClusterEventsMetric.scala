@@ -14,7 +14,7 @@ class ClusterEventsMetric(system: ExtendedActorSystem, metricRegistry: MetricReg
 
   class Listener extends Actor {
     def receive = {
-      case x: CurrentClusterState =>
+      case _: CurrentClusterState =>
       case x: ClusterDomainEvent  => x match {
         case x: MemberEvent       => mark(x, Some(x.member.address))
         case x: LeaderChanged     => mark(x, x.leader)

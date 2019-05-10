@@ -59,6 +59,7 @@ class RecoveryBreakerSpec extends WordSpec with ActorSpec with Matchers {
       expectTerminated(ref)
       ref = newRef()
       expectMsgAllOf(xs: _*)
+      ()
     }
 
     def newRef() = {
@@ -69,11 +70,13 @@ class RecoveryBreakerSpec extends WordSpec with ActorSpec with Matchers {
     def persistEvent(x: String): Unit = {
       ref ! x
       expectMsg(x)
+      ()
     }
 
     def saveSnapshot(snapshot: Any): Unit = {
       ref ! SaveSnapshot(snapshot)
       expectMsgType[SaveSnapshotSuccess]
+      ()
     }
 
     class TestActor(val persistenceId: String) extends akka.persistence.PersistentActor with ActorLogging {

@@ -21,6 +21,6 @@ object OverrideAkkaRunnable {
     def getRawResult: Unit = self.getRawResult()
     def setRawResult(v: Unit): Unit = self.setRawResult(v)
     def exec(): Boolean = r(() => self.exec())
-    def run(): Unit = exec()
+    def run(): Unit = { exec(); () }
   }
 }

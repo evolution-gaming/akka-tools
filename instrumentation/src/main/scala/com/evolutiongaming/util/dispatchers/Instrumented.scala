@@ -16,7 +16,7 @@ class Instrumented(config: InstrumentedConfig, registry: MetricRegistry) {
   private val instruments: List[Instrument] = {
     val name = config.id.replace('.', '-')
     val mdc = if (config.mdc) Some(Instrument.Mdc) else None
-    val metrics = if (config.metrics) Some(Instrument.metrics(config.id, name, registry, new LongAdder)) else None
+    val metrics = if (config.metrics) Some(Instrument.metrics(name, registry, new LongAdder)) else None
     val executionTracker = config.executionTracker map { Instrument.executionTracker(name, _, registry) }
     val result = (mdc ++ metrics ++ executionTracker).toList
     result
@@ -59,7 +59,7 @@ object Instrumented {
     val Empty: Instrument = () => () => () => ()
 
     val Mdc: Instrument = () => {
-      val mdc = try MDC.getCopyOfContextMap catch { case e: ConcurrentModificationException => null }
+      val mdc = try MDC.getCopyOfContextMap catch { case _: ConcurrentModificationException => null }
       () => {
         if (mdc == null) MDC.clear() else MDC.setContextMap(mdc)
         () => {
@@ -68,7 +68,7 @@ object Instrumented {
       }
     }
 
-    def metrics(id: String, name: String, registry: MetricRegistry, currentWorkers: LongAdder): Instrument = {
+    def metrics(name: String, registry: MetricRegistry, currentWorkers: LongAdder): Instrument = {
       val queue = registry histogram s"$name.queue"
       val run = registry histogram s"$name.run"
       val workers = registry histogram s"$name.workers"

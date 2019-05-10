@@ -10,7 +10,7 @@ class LogUnreachable(system: ExtendedActorSystem) extends Extension {
 
   private lazy val ref = system.actorOf(Props(new Listener))
 
-  def start(): Unit = ref
+  def start(): Unit = { ref; () }
 
 
   private class Listener extends Actor with ActorLogging {

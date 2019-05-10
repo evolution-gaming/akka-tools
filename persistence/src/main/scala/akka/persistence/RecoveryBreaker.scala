@@ -22,7 +22,7 @@ private class RecoveryBreakerImp(
   allowedNumberOfEvents: Long,
   actor: PersistentActor,
   action: => RecoveryBreaker.Action,
-  replay: Iterable[Envelope] => Any,
+  replay: Iterable[Envelope] => Unit,
   replayDelay: FiniteDuration) extends RecoveryBreaker {
 
   import RecoveryBreaker._
@@ -35,8 +35,8 @@ private class RecoveryBreakerImp(
   private var numberOfEvents: Int = 0
 
   def onRecoveryFailure(cause: Throwable) = cause match {
-    case cause: BreakRecoveryException =>
-    case _                             => action match {
+    case _: BreakRecoveryException =>
+    case _                         => action match {
       case Action.Clear(timeout) => clearAndReplay(timeout)
       case Action.Stop           =>
       case Action.Ignore         =>
@@ -72,7 +72,7 @@ private class RecoveryBreakerImp(
     case _                             => system.log
   }
 
-  private def clearAndReplay(timeout: FiniteDuration) = {
+  private def clearAndReplay(timeout: FiniteDuration): Unit = {
     val persistenceId = actor.persistenceId
 
     val deleteEvents = {
@@ -105,6 +105,7 @@ private class RecoveryBreakerImp(
     system.scheduler.scheduleOnce(replayDelay) {
       replay(stash)
     }
+    ()
   }
 }
 
@@ -115,7 +116,7 @@ object RecoveryBreaker {
     allowedNumberOfEvents: Long,
     actor: PersistentActor,
     action: => RecoveryBreaker.Action,
-    replayDelay: FiniteDuration = 300.millis)(replay: Iterable[Envelope] => Any): RecoveryBreaker = {
+    replayDelay: FiniteDuration = 300.millis)(replay: Iterable[Envelope] => Unit): RecoveryBreaker = {
 
     new RecoveryBreakerImp(
       saveSnapshotOncePer = saveSnapshotOncePer,

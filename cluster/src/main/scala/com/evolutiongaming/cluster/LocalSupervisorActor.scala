@@ -13,7 +13,7 @@ class LocalSupervisorActor(props: Props, extractEntityId: ShardRegion.ExtractEnt
 
     case Passivate(x) => sender() ! x
 
-    case Terminated(child) =>
+    case Terminated(_) =>
   }
 }
 
