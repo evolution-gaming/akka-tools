@@ -1,10 +1,8 @@
 package com.evolutiongaming.util.dispatchers
 
-import java.util.concurrent.atomic.LongAdder
-
 import akka.dispatch.OverrideAkkaRunnable
-import com.codahale.metrics.MetricRegistry
 import com.evolutiongaming.util.ExecutionThreadTracker
+import io.prometheus.client.{Collector, CollectorRegistry, Gauge, Summary}
 import org.slf4j.MDC
 
 import scala.compat.Platform
@@ -16,21 +14,21 @@ trait Instrumented {
 }
 
 object Instrumented {
-  trait Run { def apply[T](f: () => T): T }
+  trait Run {def apply[T](f: () => T): T }
 
   type Instrument = () => BeforeRun
   type BeforeRun = () => AfterRun
   type AfterRun = () => Unit
 
 
-  def apply(config: InstrumentedConfig, registry: MetricRegistry): Instrumented = {
+  def apply(config: InstrumentedConfig, metrics: Metrics.Of): Instrumented = {
 
     val instruments: List[Instrument] = {
       val name = config.id.replace('.', '-')
       val mdc = if (config.mdc) Some(Instrument.Mdc) else None
-      val metrics = if (config.metrics) Some(Instrument.metrics(name, registry, new LongAdder)) else None
-      val executionTracker = config.executionTracker map { Instrument.executionTracker(name, _, registry) }
-      val result = (mdc ++ metrics ++ executionTracker).toList
+      val metricsOpt = if (config.metrics) Some(Instrument.metrics(metrics(name))) else None
+      val executionTracker = config.executionTracker map { Instrument.executionTracker }
+      val result = (mdc ++ metricsOpt ++ executionTracker).toList
       result
     }
 
@@ -82,44 +80,92 @@ object Instrumented {
       }
     }
 
-    def metrics(name: String, registry: MetricRegistry, currentWorkers: LongAdder): Instrument = {
-      val queue = registry histogram s"$name.queue"
-      val run = registry histogram s"$name.run"
-      val workers = registry histogram s"$name.workers"
-
+    def metrics(metrics: Metrics): Instrument = {
       () => {
         val created = Platform.currentTime
         () => {
           val started = Platform.currentTime
-          queue update started - created
-          currentWorkers.increment()
-          workers.update(currentWorkers.intValue())
+          metrics.queue(started - created)
           () => {
             val stopped = Platform.currentTime
-            run update stopped - started
-            currentWorkers.decrement()
-            workers.update(currentWorkers.intValue())
-            ()
+            metrics.run(stopped - started)
           }
         }
       }
     }
 
-    def executionTracker(name: String, config: InstrumentedConfig.ExecutionTracker, registry: MetricRegistry): Instrument = {
+    def executionTracker(config: InstrumentedConfig.ExecutionTracker): Instrument = {
+
       val tracker = ExecutionThreadTracker(
         hangingThreshold = config.hangingThreshold,
-        checkInterval = config.checkInterval,
-        registry = registry,
-        name = name)
+        checkInterval = config.checkInterval)
 
       () => {
         () => {
           val stop = tracker.start()
           () => {
             stop()
-            ()
           }
         }
+      }
+    }
+  }
+
+
+  trait Metrics {
+
+    def queue(latency: Long): Unit
+
+    def run(latency: Long): Unit
+  }
+
+  object Metrics {
+
+    trait Of {
+      def apply(dispatcher: String): Metrics
+    }
+
+    object Of {
+
+      def apply(prefix: String, registry: CollectorRegistry): Of = {
+
+        val latencySummary = Summary
+          .build()
+          .name(s"${ prefix }_latency")
+          .help("Latency in seconds")
+          .labelNames("dispatcher", "phase")
+          .quantile(0.5, 0.05)
+          .quantile(0.9, 0.05)
+          .quantile(0.95, 0.01)
+          .quantile(0.99, 0.005)
+          .register(registry)
+
+        val workersGauge = Gauge
+          .build()
+          .name(s"${ prefix }_workers")
+          .help("Number of workers")
+          .labelNames("dispatcher")
+          .register(registry)
+
+        def observeLatency(latency: Long, phase: String, dispatcher: String) = {
+          latencySummary
+            .labels(dispatcher, phase)
+            .observe(latency.toDouble / Collector.MILLISECONDS_PER_SECOND)
+        }
+
+        dispatcher =>
+          new Metrics {
+
+            def queue(latency: Long) = {
+              workersGauge.labels(dispatcher).inc()
+              observeLatency(latency, dispatcher = dispatcher, phase = "queue")
+            }
+
+            def run(latency: Long) = {
+              workersGauge.labels(dispatcher).dec()
+              observeLatency(latency, dispatcher = dispatcher, phase = "run")
+            }
+          }
       }
     }
   }

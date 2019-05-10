@@ -1,7 +1,6 @@
 package com.evolutiongaming.util.dispatchers
 
 import akka.dispatch._
-import com.codahale.metrics.MetricRegistry
 import com.evolutiongaming.config.ConfigHelper._
 import com.typesafe.config.Config
 
@@ -17,10 +16,11 @@ abstract class AbstractInstrumentedDispatcher(config: Config, prerequisites: Dis
     configureExecutor(),
     config.get("shutdown-timeout")
   ) with InstrumentedDispatcherMixin {
-    def metricRegistry: MetricRegistry = AbstractInstrumentedDispatcher.this.metricRegistry
+
+    def metrics = AbstractInstrumentedDispatcher.this.metrics
   }
 
   def dispatcher(): MessageDispatcher = instance
 
-  def metricRegistry: MetricRegistry
+  def metrics: Instrumented.Metrics.Of
 }

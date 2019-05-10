@@ -2,7 +2,6 @@ package com.evolutiongaming.util.dispatchers
 
 import akka.dispatch._
 import akka.event.Logging.Warning
-import com.codahale.metrics.MetricRegistry
 import com.evolutiongaming.config.ConfigHelper._
 import com.typesafe.config.Config
 
@@ -22,13 +21,15 @@ abstract class AbstractInstrumentedPinned(config: Config, prerequisites: Dispatc
       ThreadPoolConfig()
   }
 
-  override def dispatcher(): MessageDispatcher =
+  override def dispatcher(): MessageDispatcher = {
     new PinnedDispatcher(
       this, null, config.getString("id"),
-      config.get("shutdown-timeout"), threadPoolConfig) with InstrumentedDispatcherMixin {
+      config.get("shutdown-timeout"), threadPoolConfig
+    ) with InstrumentedDispatcherMixin {
 
-      def metricRegistry: MetricRegistry = AbstractInstrumentedPinned.this.metricRegistry
+      def metrics = AbstractInstrumentedPinned.this.metrics
     }
+  }
 
-  def metricRegistry: MetricRegistry
+  def metrics: Instrumented.Metrics.Of
 }

@@ -3,7 +3,6 @@ package com.evolutiongaming.util
 import java.lang.management.{ManagementFactory, ThreadMXBean}
 import java.util.concurrent.{Executors, ScheduledExecutorService}
 
-import com.codahale.metrics.MetricRegistry
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.concurrent.TrieMap
@@ -11,24 +10,17 @@ import scala.compat.Platform
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
-class ExecutionThreadTracker(
-  add: ExecutionThreadTracker.ThreadId => Unit,
-  remove: ExecutionThreadTracker.ThreadId => Unit) {
+trait ExecutionThreadTracker {
 
-  def apply[T](f: => T): T = {
-    val stop = start()
-    try f finally stop()
-  }
+  def apply[T](f: => T): T
 
-  def start(): () => Unit = {
-    val threadId = Thread.currentThread().getId
-    add(threadId)
-    () => remove(threadId)
-  }
+  def start(): () => Unit
 }
 
 object ExecutionThreadTracker extends LazyLogging {
+
   type ThreadId = java.lang.Long
+
   type StartTime = java.lang.Long
 
   private lazy val threads = ManagementFactory.getThreadMXBean
@@ -36,30 +28,13 @@ object ExecutionThreadTracker extends LazyLogging {
 
   def apply(
     hangingThreshold: FiniteDuration,
-    registry: MetricRegistry,
-    name: String): ExecutionThreadTracker = {
-
-    apply(
-      hangingThreshold = hangingThreshold,
-      checkInterval = 1.second,
-      registry = registry,
-      name = name)
-  }
-
-  def apply(
-    hangingThreshold: FiniteDuration,
-    checkInterval: FiniteDuration,
-    registry: MetricRegistry,
-    name: String,
+    checkInterval: FiniteDuration = 1.second,
     maxDepth: Int = 300,
     threads: ThreadMXBean = threads,
-    executorService: ScheduledExecutorService = executorService): ExecutionThreadTracker = {
+    executorService: ScheduledExecutorService = executorService
+  ): ExecutionThreadTracker = {
 
     val cache = TrieMap.empty[ThreadId, StartTime]
-
-    val hanging = registry meter s"$name.hanging"
-    val hangingDatabase = registry meter s"$name.hanging.database"
-    val hangingNonDatabase = registry meter s"$name.hanging.non_database"
 
     val runnable = new Runnable {
       def run(): Unit = {
@@ -74,14 +49,11 @@ object ExecutionThreadTracker extends LazyLogging {
           } {
             val threadName = threadInfo.getThreadName
             val stackTrace = threadInfo.getStackTrace
-            hanging.mark()
             if (waitsOnJdbcSocketRead(stackTrace)) {
               logger.warn(s"Hanging for $duration ms dispatcher thread detected: thread $threadName, waits on JDBC socket read")
-              hangingDatabase.mark()
             } else {
               val formattedStackTrace = stackTraceToString(stackTrace)
               logger.error(s"Hanging for $duration ms dispatcher thread detected: thread $threadName, current state:\t$formattedStackTrace")
-              hangingNonDatabase.mark()
             }
           }
         } catch {
@@ -103,7 +75,27 @@ object ExecutionThreadTracker extends LazyLogging {
       ()
     }
 
-    new ExecutionThreadTracker(add, remove)
+    apply(add, remove)
+  }
+
+  def apply(
+    add: ExecutionThreadTracker.ThreadId => Unit,
+    remove: ExecutionThreadTracker.ThreadId => Unit
+  ): ExecutionThreadTracker = {
+
+    new ExecutionThreadTracker {
+
+      def apply[T](f: => T): T = {
+        val stop = start()
+        try f finally stop()
+      }
+
+      def start(): () => Unit = {
+        val threadId = Thread.currentThread().getId
+        add(threadId)
+        () => remove(threadId)
+      }
+    }
   }
 
   def stackTraceToString(xs: Array[StackTraceElement]): String =

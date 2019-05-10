@@ -3,14 +3,16 @@ package akka.dispatch
 import java.util.concurrent.RejectedExecutionException
 
 import akka.event.Logging.Error
-import com.codahale.metrics.MetricRegistry
 import com.evolutiongaming.util.dispatchers.{Instrumented, InstrumentedConfig}
 
 trait InstrumentedDispatcherMixin extends Dispatcher {
 
+  def metrics: Instrumented.Metrics.Of
+
+
   private lazy val instrumented = {
     val config = InstrumentedConfig(configurator.config)
-    Instrumented(config, metricRegistry)
+    Instrumented(config, metrics)
   }
 
   override def execute(runnable: Runnable): Unit = {
@@ -45,6 +47,4 @@ trait InstrumentedDispatcherMixin extends Dispatcher {
       } else false
     } else false
   }
-
-  def metricRegistry: MetricRegistry
 }

@@ -23,4 +23,9 @@ object Dependencies {
   val MetricTools   = "com.evolutiongaming" %% "metric-tools"    % "1.1"
   val ScalaTools    = "com.evolutiongaming" %% "scala-tools"     % "2.0"
   val ConfigTools   = "com.evolutiongaming" %% "config-tools"    % "1.0.3"
+
+  object Prometheus {
+    private val version = "0.6.0"
+    val simpleclient = "io.prometheus" % "simpleclient" % version
+  }
 }

@@ -24,71 +24,83 @@ lazy val allSettings = commonSettings ++ publishSettings
 lazy val akkaTools = (project
   in file(".")
   settings (name := "akka-tools")
-  settings allSettings
+  settings allSettings                        
   aggregate(instrumentation, cluster, persistence, serialization, util, test))
 
 lazy val instrumentation = (project
   in file("instrumentation")
   dependsOn util
-  settings (name := "akka-tools-instrumentation")
-  settings (libraryDependencies ++= Seq(Akka.Actor, ConfigTools, MetricTools, MetricsCore))
+  settings (
+    name := "akka-tools-instrumentation",
+    libraryDependencies ++= Seq(
+      Akka.Actor,
+      ConfigTools,
+      MetricTools/*TODO REMOVE*/,
+      MetricsCore/*TODO REMOVE*/,
+      Prometheus.simpleclient))
   settings allSettings)
 
 lazy val cluster = (project
   in file("cluster")
   dependsOn (test % "test->compile")
-  settings (name := "akka-tools-cluster")
-  settings (libraryDependencies ++= Seq(
-    Akka.Actor,
-    Akka.Cluster,
-    Akka.ClusterSharding,
-    Akka.TestKit % Test,
-    Logging,
-    MetricsCore,
-    ConfigTools,
-    Nel,
-    scalax,
-    ScalaTest % Test))
+  settings(
+    name := "akka-tools-cluster",
+    libraryDependencies ++= Seq(
+      Akka.Actor,
+      Akka.Cluster,
+      Akka.ClusterSharding,
+      Akka.TestKit % Test,
+      Logging,
+      MetricsCore,
+      ConfigTools,
+      Nel,
+      scalax,
+      ScalaTest % Test))
   settings allSettings)
 
 lazy val persistence = (project
   in file("persistence")
   dependsOn (serialization, test % "test->compile")
-  settings (name := "akka-tools-persistence")
-  settings (libraryDependencies ++= Seq(
-    Akka.Actor,
-    ConfigTools,
-    Akka.TestKit % Test,
-    ScalaTest % Test))
+  settings(
+    name := "akka-tools-persistence",
+    libraryDependencies ++= Seq(
+      Akka.Actor,
+      ConfigTools,
+      Akka.TestKit % Test,
+      ScalaTest % Test))
   settings allSettings)
 
 lazy val serialization = (project
   in file("serialization")
   dependsOn (test % "test->compile")
-  settings (name := "akka-tools-serialization")
-  settings (libraryDependencies ++= Seq(
-    Akka.Actor,
-    Logging,
-    scalax,
-    Akka.AkkaPersistence,
-    ScalaTest % Test))
+  settings(
+    name := "akka-tools-serialization",
+    libraryDependencies ++= Seq(
+      Akka.Actor,
+      Logging,
+      scalax,
+      Akka.AkkaPersistence,
+      ScalaTest % Test))
   settings allSettings)
 
 lazy val util = (project
   in file("util")
   dependsOn (test % "test->compile")
-  settings (name := "akka-tools-util")
-  settings (libraryDependencies ++= Seq(
-    Akka.Actor,
-    Akka.TestKit % Test,
-    ScalaTest % Test,
-    MetricTools,
-    MetricsCore,
-    Logging))
+  settings(
+    name := "akka-tools-util",
+    libraryDependencies ++= Seq(
+      Akka.Actor,
+      Akka.TestKit % Test,
+      ScalaTest % Test,
+      Logging))
   settings allSettings)
 
 lazy val test = (project
   in file("test")
-  settings (name := "akka-tools-test")
-  settings (libraryDependencies ++= Seq(Akka.Actor, Akka.TestKit, ScalaTest))
+  settings(
+    name := "akka-tools-test",
+    libraryDependencies ++= Seq(
+        Akka.Actor, 
+        Akka.TestKit, 
+        ScalaTest))
   settings allSettings)
