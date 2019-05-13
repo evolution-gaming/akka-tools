@@ -121,13 +121,19 @@ object Instrumented {
 
   object Metrics {
 
+    type Prefix = String
+
+    object Prefix {
+      val Default = "dispatcher"
+    }
+
     trait Of {
       def apply(dispatcher: String): Metrics
     }
 
     object Of {
 
-      def apply(prefix: String, registry: CollectorRegistry): Of = {
+      def apply(registry: CollectorRegistry, prefix: Prefix = Prefix.Default): Of = {
 
         val latencySummary = Summary
           .build()
