@@ -12,17 +12,14 @@ object Dependencies {
     val TestKit         = "com.typesafe.akka" %% "akka-testkit"          % version
   }
 
-  val ScalaTest   = "org.scalatest"              %% "scalatest"       % "3.0.7"
-  val MetricsCore = "io.dropwizard.metrics"       % "metrics-core"    % "3.2.6"
-  val Logback     = "ch.qos.logback"              % "logback-classic" % "1.2.3"
-  val scalax      = "com.github.t3hnar"          %% "scalax"          % "3.4"
-  val Logging     = "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.2"
-
-  val playJsonTools = "com.evolutiongaming" %% "play-json-tools" % "0.3.9"
-  val Nel           = "com.evolutiongaming" %% "nel"             % "1.3.3"
-  val MetricTools   = "com.evolutiongaming" %% "metric-tools"    % "1.1"
-  val ScalaTools    = "com.evolutiongaming" %% "scala-tools"     % "2.0"
-  val ConfigTools   = "com.evolutiongaming" %% "config-tools"    % "1.0.3"
+  val ScalaTest     = "org.scalatest"              %% "scalatest"       % "3.0.7"
+  val Logback       = "ch.qos.logback"              % "logback-classic" % "1.2.3"
+  val scalax        = "com.github.t3hnar"          %% "scalax"          % "3.4"
+  val Logging       = "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.2"
+  val playJsonTools = "com.evolutiongaming"        %% "play-json-tools" % "0.3.9"
+  val Nel           = "com.evolutiongaming"        %% "nel"             % "1.3.3"
+  val ScalaTools    = "com.evolutiongaming"        %% "scala-tools"     % "2.0"
+  val ConfigTools   = "com.evolutiongaming"        %% "config-tools"    % "1.0.3"
 
   object Prometheus {
     private val version = "0.6.0"

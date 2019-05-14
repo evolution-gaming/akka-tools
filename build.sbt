@@ -35,8 +35,6 @@ lazy val instrumentation = (project
     libraryDependencies ++= Seq(
       Akka.Actor,
       ConfigTools,
-      MetricTools/*TODO REMOVE*/,
-      MetricsCore/*TODO REMOVE*/,
       Prometheus.simpleclient))
   settings allSettings)
 
@@ -51,7 +49,6 @@ lazy val cluster = (project
       Akka.ClusterSharding,
       Akka.TestKit % Test,
       Logging,
-      MetricsCore,
       ConfigTools,
       Nel,
       scalax,
