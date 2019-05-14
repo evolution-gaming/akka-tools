@@ -24,7 +24,10 @@ object Instrumented {
   def apply(config: InstrumentedConfig, metrics: Metrics.Of): Instrumented = {
 
     val instruments: List[Instrument] = {
-      val name = config.id.replace('.', '-')
+      val name = {
+        val name = config.id.replace(".", "-")
+        if (name startsWith "akka") name else s"akka-$name"
+      }
       val mdc = if (config.mdc) Some(Instrument.Mdc) else None
       val metricsOpt = if (config.metrics) Some(Instrument.metrics(metrics(name))) else None
       val executionTracker = config.executionTracker map { Instrument.executionTracker }
