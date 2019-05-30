@@ -10,7 +10,7 @@ object BlockingTracker extends LazyLogging {
 
   trait Surround {def apply[T](f: () => T): T }
 
-  lazy val Empty = new Surround {
+  val Empty: Surround = new Surround {
     override def apply[T](f: () => T): T = f()
   }
 
@@ -24,8 +24,9 @@ object BlockingTracker extends LazyLogging {
           val tracking = new BlockContext {
             override def blockOn[A](thunk: => A)(implicit permission: CanAwait): A = {
 
-              val stacktrace = stackTraceToString(Thread.currentThread().getStackTrace)
-              val name = Thread.currentThread().getName
+              val thread = Thread.currentThread()
+              val stacktrace = stackTraceToString(thread.getStackTrace)
+              val name = thread.getName
               logger.warn(s"Thread $name is about to block on: $stacktrace")
 
               nonTracking.blockOn(thunk)
