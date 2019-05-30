@@ -9,7 +9,9 @@ case class InstrumentedConfig(
   id: String,
   mdc: Boolean,
   metrics: Boolean,
-  executionTracker: Option[InstrumentedConfig.ExecutionTracker])
+  executionTracker: Option[InstrumentedConfig.ExecutionTracker],
+  blockingTracker: Boolean,
+)
 
 object InstrumentedConfig {
 
@@ -18,7 +20,9 @@ object InstrumentedConfig {
       id = config.get[String]("id"),
       mdc = config.getOpt[Boolean]("mdc") getOrElse false,
       metrics = config.getOpt[Boolean]("metrics") getOrElse false,
-      executionTracker = config.getOpt[Config]("execution-tracker") flatMap ExecutionTracker.opt)
+      executionTracker = config.getOpt[Config]("execution-tracker") flatMap ExecutionTracker.opt,
+      blockingTracker = config.getOpt[Boolean]("blocking-tracker") getOrElse false,
+    )
   }
 
   
