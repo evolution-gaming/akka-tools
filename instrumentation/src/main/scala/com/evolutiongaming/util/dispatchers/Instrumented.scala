@@ -1,7 +1,8 @@
 package com.evolutiongaming.util.dispatchers
 
 import akka.dispatch.OverrideAkkaRunnable
-import com.evolutiongaming.util.ExecutionThreadTracker
+import com.evolutiongaming.util.BlockingTracker.Surround
+import com.evolutiongaming.util.{BlockingTracker, ExecutionThreadTracker}
 import io.prometheus.client.{Collector, CollectorRegistry, Gauge, Summary}
 import org.slf4j.MDC
 
@@ -35,10 +36,12 @@ object Instrumented {
       result
     }
 
-    apply(instruments)
+    val surround = BlockingTracker(config.blockingTracker)
+
+    apply(instruments, surround)
   }
 
-  def apply(instruments: List[Instrument]): Instrumented = {
+  def apply(instruments: List[Instrument], surround: Surround): Instrumented = {
 
     object OverrideRunnable {
 
@@ -60,7 +63,7 @@ object Instrumented {
         val run = new Run {
           def apply[T](run: () => T): T = {
             val afterRuns = for {f <- beforeRuns} yield f()
-            try run() finally for {f <- afterRuns} f()
+            try surround(run) finally for {f <- afterRuns} f()
           }
         }
         val overridden = OverrideRunnable(runnable, run)
