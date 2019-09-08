@@ -4,8 +4,6 @@ import com.evolutiongaming.test.ActorSpec
 import org.scalatest.concurrent.{ScalaFutures, TimeLimits}
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 import scala.util.control.NoStackTrace
 
 class FutureSequentialForKeySpec extends WordSpec with ActorSpec with Matchers with ScalaFutures with TimeLimits {
@@ -47,23 +45,6 @@ class FutureSequentialForKeySpec extends WordSpec with ActorSpec with Matchers w
 
       val future = futureSequentialForKey("key") {"2"}
       whenReady(future) {_ shouldEqual "2"}
-    }
-
-    "be fast" in new Scope {
-      import system.dispatcher
-
-      val keys = 1 to 100
-
-      val futures = failAfter(5.seconds) {
-        for {key <- keys.par; _ <- 1 to 100} futureSequentialForKey(key) {()}
-        for {key <- keys} yield futureSequentialForKey(key) {key}
-      }
-
-      failAfter(timeout.duration) {
-        for {key <- keys} yield futureSequentialForKey(key) {key}
-        val result = Await.result(Future.sequence(futures), timeout.duration * 2)
-        result.toSet shouldEqual keys.toSet
-      }
     }
   }
 

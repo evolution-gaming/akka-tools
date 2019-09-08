@@ -6,7 +6,6 @@ import java.util.concurrent.{Executors, ScheduledExecutorService}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.concurrent.TrieMap
-import scala.compat.Platform
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
@@ -39,7 +38,7 @@ object ExecutionThreadTracker extends LazyLogging {
     val runnable = new Runnable {
       def run(): Unit = {
         try {
-          val currentTime = Platform.currentTime
+          val currentTime = System.currentTimeMillis()
           for {
             (threadId, startTime) <- cache
             duration = (currentTime - startTime).millis
@@ -65,7 +64,7 @@ object ExecutionThreadTracker extends LazyLogging {
 
 
     val add = (threadId: ThreadId) => {
-      val startTime = Platform.currentTime
+      val startTime = System.currentTimeMillis()
       cache.put(threadId, startTime)
       ()
     }

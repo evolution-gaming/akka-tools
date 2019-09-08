@@ -1,13 +1,13 @@
 package com.evolutiongaming.util.dispatchers
 
+import java.util.ConcurrentModificationException
+
 import akka.dispatch.OverrideAkkaRunnable
 import com.evolutiongaming.util.BlockingTracker.Surround
 import com.evolutiongaming.util.{BlockingTracker, ExecutionThreadTracker}
 import io.prometheus.client.{Collector, CollectorRegistry, Gauge, Summary}
 import org.slf4j.MDC
 
-import scala.compat.Platform
-import scala.compat.Platform._
 
 trait Instrumented {
 
@@ -88,12 +88,12 @@ object Instrumented {
 
     def metrics(metrics: Metrics): Instrument = {
       () => {
-        val created = Platform.currentTime
+        val created = System.currentTimeMillis()
         () => {
-          val started = Platform.currentTime
+          val started = System.currentTimeMillis()
           metrics.queue(started - created)
           () => {
-            val stopped = Platform.currentTime
+            val stopped = System.currentTimeMillis()
             metrics.run(stopped - started)
           }
         }

@@ -10,8 +10,8 @@ abstract class AbstractInstrumentedPinned(config: Config, prerequisites: Dispatc
   extends MessageDispatcherConfigurator(config, prerequisites) {
 
   private val threadPoolConfig: ThreadPoolConfig = configureExecutor() match {
-    case e: ThreadPoolExecutorConfigurator ⇒ e.threadPoolConfig
-    case _                                 ⇒
+    case e: ThreadPoolExecutorConfigurator => e.threadPoolConfig
+    case _                                 =>
       prerequisites.eventStream.publish(
         Warning(
           "PinnedDispatcherConfigurator",

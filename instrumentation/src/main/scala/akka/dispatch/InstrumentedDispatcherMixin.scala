@@ -33,12 +33,12 @@ trait InstrumentedDispatcherMixin extends Dispatcher {
           instrumented(mbox, executorService.execute)
           true
         } catch {
-          case _: RejectedExecutionException ⇒
+          case _: RejectedExecutionException =>
             try {
               instrumented(mbox, executorService.execute)
               true
             } catch { //Retry once
-              case e: RejectedExecutionException ⇒
+              case e: RejectedExecutionException =>
                 mbox.setAsIdle()
                 eventStream.publish(Error(e, getClass.getName, getClass, "registerForExecution was rejected twice!"))
                 throw e
