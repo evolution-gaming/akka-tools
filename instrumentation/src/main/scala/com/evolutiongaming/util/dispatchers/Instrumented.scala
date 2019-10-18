@@ -88,12 +88,12 @@ object Instrumented {
 
     def metrics(metrics: Metrics): Instrument = {
       () => {
-        val created = System.currentTimeMillis()
+        val created = System.nanoTime()
         () => {
-          val started = System.currentTimeMillis()
+          val started = System.nanoTime()
           metrics.queue(started - created)
           () => {
-            val stopped = System.currentTimeMillis()
+            val stopped = System.nanoTime()
             metrics.run(stopped - started)
           }
         }
@@ -120,9 +120,9 @@ object Instrumented {
 
   trait Metrics {
 
-    def queue(latency: Long): Unit
+    def queue(latencyNanos: Long): Unit
 
-    def run(latency: Long): Unit
+    def run(latencyNanos: Long): Unit
   }
 
   object Metrics {
@@ -159,23 +159,23 @@ object Instrumented {
           .labelNames("dispatcher")
           .register(registry)
 
-        def observeLatency(latency: Long, phase: String, dispatcher: String) = {
+        def observeLatency(latencyNanos: Long, phase: String, dispatcher: String) = {
           latencySummary
             .labels(dispatcher, phase)
-            .observe(latency.toDouble / Collector.MILLISECONDS_PER_SECOND)
+            .observe(latencyNanos.toDouble / Collector.NANOSECONDS_PER_SECOND)
         }
 
         dispatcher =>
           new Metrics {
 
-            def queue(latency: Long) = {
+            def queue(latencyNanos: Long) = {
               workersGauge.labels(dispatcher).inc()
-              observeLatency(latency, dispatcher = dispatcher, phase = "queue")
+              observeLatency(latencyNanos, dispatcher = dispatcher, phase = "queue")
             }
 
-            def run(latency: Long) = {
+            def run(latencyNanos: Long) = {
               workersGauge.labels(dispatcher).dec()
-              observeLatency(latency, dispatcher = dispatcher, phase = "run")
+              observeLatency(latencyNanos, dispatcher = dispatcher, phase = "run")
             }
           }
       }

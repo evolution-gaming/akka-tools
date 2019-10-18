@@ -38,10 +38,10 @@ object ExecutionThreadTracker extends LazyLogging {
     val runnable = new Runnable {
       def run(): Unit = {
         try {
-          val currentTime = System.currentTimeMillis()
+          val currentTime = System.nanoTime()
           for {
             (threadId, startTime) <- cache
-            duration = (currentTime - startTime).millis
+            duration = (currentTime - startTime).nanos
             if duration >= hangingThreshold
             _ <- cache.remove(threadId)
             threadInfo <- Option(threads.getThreadInfo(threadId, maxDepth))
@@ -49,10 +49,10 @@ object ExecutionThreadTracker extends LazyLogging {
             val threadName = threadInfo.getThreadName
             val stackTrace = threadInfo.getStackTrace
             if (waitsOnJdbcSocketRead(stackTrace)) {
-              logger.warn(s"Hanging for $duration ms dispatcher thread detected: thread $threadName, waits on JDBC socket read")
+              logger.warn(s"Hanging for ${duration.toMillis} ms dispatcher thread detected: thread $threadName, waits on JDBC socket read")
             } else {
               val formattedStackTrace = stackTraceToString(stackTrace)
-              logger.error(s"Hanging for $duration ms dispatcher thread detected: thread $threadName, current state:\t$formattedStackTrace")
+              logger.error(s"Hanging for ${duration.toMillis} ms dispatcher thread detected: thread $threadName, current state:\t$formattedStackTrace")
             }
           }
         } catch {
@@ -64,7 +64,7 @@ object ExecutionThreadTracker extends LazyLogging {
 
 
     val add = (threadId: ThreadId) => {
-      val startTime = System.currentTimeMillis()
+      val startTime = System.nanoTime()
       cache.put(threadId, startTime)
       ()
     }
