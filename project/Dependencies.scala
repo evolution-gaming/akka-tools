@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   object Akka {
-    private val version = "2.5.25"
+    private val version = "2.5.26"
     val Stream          = "com.typesafe.akka" %% "akka-stream"           % version
     val Actor           = "com.typesafe.akka" %% "akka-actor"            % version
     val AkkaPersistence = "com.typesafe.akka" %% "akka-persistence"      % version
@@ -21,7 +21,7 @@ object Dependencies {
   val ConfigTools   = "com.evolutiongaming"        %% "config-tools"    % "1.0.4"
 
   object Prometheus {
-    private val version = "0.6.0"
+    private val version = "0.8.0"
     val simpleclient = "io.prometheus" % "simpleclient" % version
   }
 }
