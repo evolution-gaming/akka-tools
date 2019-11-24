@@ -10,7 +10,7 @@ import scala.concurrent.duration.FiniteDuration
 /**
   * Gives ability to decide whether to run scheduled task on system termination by setting `runOnShutdown`
   */
-class Scheduler(scheduler: akka.actor.Scheduler) extends Extension {
+class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
 
   private val shuttingDown = new AtomicBoolean(false)
 
@@ -21,7 +21,11 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension {
     (f: => Unit)
     (implicit executor: ExecutionContext): Cancellable = {
 
-    scheduler.schedule(initialDelay, interval)(run(runOnShutdown, f))
+    def runnable = new Runnable {
+      def run() = self.run(runOnShutdown, f)
+    }
+    
+    scheduler.scheduleWithFixedDelay(initialDelay, interval)(runnable)
   }
 
   def schedule(
