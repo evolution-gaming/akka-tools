@@ -1,10 +1,11 @@
 package com.evolutiongaming.persistence
 
-import org.scalatest.Matchers._
+import matchers.should.Matchers._
 import org.scalatest.OptionValues._
-import org.scalatest.WordSpec
+import org.scalatest.matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class PersistenceIdSpec extends WordSpec {
+class PersistenceIdSpec extends AnyWordSpec {
 
   "PersistenceId.unapply" should {
     "be empty for invalid string" in {
