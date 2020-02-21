@@ -1,9 +1,10 @@
 package com.evolutiongaming.cluster
 
 import akka.actor.Address
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class AddressHelperSpec extends FunSuite with Matchers {
+class AddressHelperSpec extends AnyFunSuite with Matchers {
   val global = Address("akka.tcp", "coreservices", "127.0.0.1", 9196)
   val local = Address("akka", "coreservices")
   val addressHelper = new AddressHelper(global)
