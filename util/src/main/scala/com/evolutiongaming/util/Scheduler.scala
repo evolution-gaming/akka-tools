@@ -10,10 +10,12 @@ import scala.concurrent.duration.FiniteDuration
 /**
   * Gives ability to decide whether to run scheduled task on system termination by setting `runOnShutdown`
   */
+@deprecated("Use akka.actor.Scheduler directly, check https://doc.akka.io/docs/akka/2.6/project/migration-guide-2.5.x-2.6.x.html#scheduler-not-running-tasks-when-shutdown", "3.0.11")
 class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
 
   private val shuttingDown = new AtomicBoolean(false)
 
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def schedule(
     initialDelay: FiniteDuration,
     interval: FiniteDuration,
@@ -28,6 +30,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     scheduler.scheduleWithFixedDelay(initialDelay, interval)(runnable)
   }
 
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def schedule(
     initialDelay: FiniteDuration,
     interval: FiniteDuration)
@@ -37,7 +40,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     schedule(initialDelay, interval, runOnShutdown = true)(f)
   }
 
-
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def schedule(
     initialDelay: FiniteDuration,
     interval: FiniteDuration,
@@ -49,6 +52,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     schedule(initialDelay, interval, runOnShutdown)(receiver.tell(message, sender))
   }
 
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def schedule(
     initialDelay: FiniteDuration,
     interval: FiniteDuration,
@@ -59,7 +63,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     schedule(initialDelay, interval, receiver, message, runOnShutdown = true)
   }
 
-
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def schedule(
     initialDelay: FiniteDuration,
     interval: FiniteDuration,
@@ -79,7 +83,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     schedule(initialDelay, interval, runnable, runOnShutdown = true)
   }
 
-
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def scheduleOnce(delay: FiniteDuration, runOnShutdown: Boolean)
     (f: => Unit)
     (implicit executor: ExecutionContext): Cancellable = {
@@ -87,6 +91,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     scheduler.scheduleOnce(delay)(run(runOnShutdown, f))
   }
 
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def scheduleOnce(delay: FiniteDuration)
     (f: => Unit)
     (implicit executor: ExecutionContext): Cancellable = {
@@ -94,7 +99,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     scheduleOnce(delay, runOnShutdown = true)(f)
   }
 
-
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def scheduleOnce(
     delay: FiniteDuration,
     receiver: ActorRef,
@@ -105,6 +110,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     scheduleOnce(delay, runOnShutdown)(receiver.tell(message, sender))
   }
 
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def scheduleOnce(
     delay: FiniteDuration,
     receiver: ActorRef,
@@ -114,7 +120,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     scheduleOnce(delay, receiver, message, runOnShutdown = true)
   }
 
-
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def scheduleOnce(
     delay: FiniteDuration,
     runnable: Runnable,
@@ -124,6 +130,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     scheduleOnce(delay, runOnShutdown)(runnable.run())
   }
 
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def scheduleOnce(
     delay: FiniteDuration,
     runnable: Runnable)
@@ -132,7 +139,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
     scheduleOnce(delay, runnable, runOnShutdown = true)
   }
 
-
+  @deprecated("Use akka.actor.Scheduler directly", "3.0.11")
   def shutdown(): Unit = {
     shuttingDown.set(true)
   }
