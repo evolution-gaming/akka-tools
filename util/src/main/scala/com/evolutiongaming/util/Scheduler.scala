@@ -149,6 +149,7 @@ class Scheduler(scheduler: akka.actor.Scheduler) extends Extension { self =>
   }
 }
 
+@deprecated("Use akka.actor.Scheduler directly, check https://doc.akka.io/docs/akka/2.6/project/migration-guide-2.5.x-2.6.x.html#scheduler-not-running-tasks-when-shutdown", "3.0.11")
 object Scheduler extends ExtensionId[Scheduler] {
   def createExtension(system: ExtendedActorSystem) = new Scheduler(system.scheduler)
 }
