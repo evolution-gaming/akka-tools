@@ -33,7 +33,7 @@ trait DuplicatingActor extends Actor with ActorLogging {
 }
 
 object DuplicatingJournal {
-  def props: Props = Props[DuplicatingJournal]
+  def props: Props = Props[DuplicatingJournal]()
 }
 
 class DuplicatingJournal extends DuplicatingActor {
@@ -61,5 +61,5 @@ class FailureLogger extends Actor with ActorLogging {
 }
 
 object FailureLogger {
-  def props: Props = Props[FailureLogger]
+  def props: Props = Props[FailureLogger]()
 }

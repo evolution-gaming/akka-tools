@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   object Akka {
-    private val version = "2.6.3"
+    private val version = "2.6.8"
     val Stream          = "com.typesafe.akka" %% "akka-stream"           % version
     val Actor           = "com.typesafe.akka" %% "akka-actor"            % version
     val AkkaPersistence = "com.typesafe.akka" %% "akka-persistence"      % version
