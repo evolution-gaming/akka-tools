@@ -4,7 +4,7 @@ import sbt.Keys.{homepage, organizationName, startYear}
 lazy val commonSettings = Seq(
   scalacOptions in(Compile, doc) ++= Seq("-no-link-warnings"),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.3", "2.12.12"),
+  crossScalaVersions := Seq("2.13.5", "2.12.12"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 )
 
