@@ -21,7 +21,7 @@ object Dependencies {
   val ConfigTools   = "com.evolutiongaming"        %% "config-tools"    % "1.0.4"
 
   object Prometheus {
-    private val version = "0.8.0"
+    private val version = "0.8.1"
     val simpleclient = "io.prometheus" % "simpleclient" % version
   }
 }
