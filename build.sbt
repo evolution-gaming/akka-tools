@@ -4,16 +4,16 @@ import sbt.Keys.{homepage, organizationName, startYear}
 lazy val commonSettings = Seq(
   scalacOptions in(Compile, doc) ++= Seq("-no-link-warnings"),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.3", "2.12.12"),
-  resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
+  crossScalaVersions := Seq("2.13.7", "2.12.15"),
+  publishTo := Some(Resolver.evolutionReleases),
+  versionScheme := Some("semver-spec")
 )
 
 lazy val publishSettings = Seq(
   homepage := Some(new URL("http://github.com/evolution-gaming/akka-tools")),
   startYear := Some(2016),
-  organizationName := "Evolution Gaming",
-  organizationHomepage := Some(url("http://evolutiongaming.com")),
-  bintrayOrganization := Some("evolutiongaming"),
+  organizationName := "Evolution",
+  organizationHomepage := Some(url("http://evolution.com")),
   releaseCrossBuild := true,
   organization := "com.evolutiongaming",
   licenses := Seq("MIT" -> url("http://www.opensource.org/licenses/mit-license.html"))
