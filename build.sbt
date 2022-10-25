@@ -4,7 +4,7 @@ import sbt.Keys.{homepage, organizationName, startYear}
 lazy val commonSettings = Seq(
   scalacOptions in(Compile, doc) ++= Seq("-no-link-warnings"),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.7", "2.12.15"),
+  crossScalaVersions := Seq("2.13.7", "2.12.17"),
   publishTo := Some(Resolver.evolutionReleases),
   versionScheme := Some("semver-spec")
 )
