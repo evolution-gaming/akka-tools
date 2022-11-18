@@ -18,7 +18,7 @@ object Dependencies {
   val Logging       = "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.2"
   val Nel           = "com.evolutiongaming"        %% "nel"             % "1.3.4"
   val ScalaTools    = "com.evolutiongaming"        %% "scala-tools"     % "3.0.5"
-  val ConfigTools   = "com.evolutiongaming"        %% "config-tools"    % "1.0.4"
+  val ConfigTools   = "com.evolutiongaming"        %% "config-tools"    % "1.0.5"
 
   object Prometheus {
     private val version = "0.8.1"
