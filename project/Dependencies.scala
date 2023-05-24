@@ -16,7 +16,7 @@ object Dependencies {
   val Logback       = "ch.qos.logback"              % "logback-classic" % "1.2.3"
   val scalax        = "com.github.t3hnar"          %% "scalax"          % "3.8.1"
   val Logging       = "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.2"
-  val Nel           = "com.evolutiongaming"        %% "nel"             % "1.3.4"
+  val Nel           = "com.evolutiongaming"        %% "nel"             % "1.3.5"
   val ScalaTools    = "com.evolutiongaming"        %% "scala-tools"     % "3.0.5"
   val ConfigTools   = "com.evolutiongaming"        %% "config-tools"    % "1.0.4"
 
