@@ -5,9 +5,10 @@ import akka.persistence.JournalProtocol.{DeleteMessagesTo, WriteMessages}
 import akka.persistence.SnapshotProtocol.{DeleteSnapshot, DeleteSnapshots, SaveSnapshot}
 import akka.testkit.TestProbe
 import com.evolutiongaming.test.ActorSpec
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class DuplicatingActorSpec extends WordSpec with ActorSpec with Matchers {
+class DuplicatingActorSpec extends AnyWordSpec with ActorSpec with Matchers {
 
   "DuplicatingActor" should {
 

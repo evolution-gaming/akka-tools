@@ -5,11 +5,12 @@ import java.util.UUID
 import akka.actor.{ActorLogging, Props}
 import com.evolutiongaming.serialization.BrokenSerializer
 import com.evolutiongaming.test.ActorSpec
-import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.duration._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class RecoveryBreakerSpec extends WordSpec with ActorSpec with Matchers {
+class RecoveryBreakerSpec extends AnyWordSpec with ActorSpec with Matchers {
 
   "RecoveryBreaker" should {
 
