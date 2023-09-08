@@ -12,7 +12,7 @@ object Dependencies {
     val TestKit         = "com.typesafe.akka" %% "akka-testkit"          % version
   }
 
-  val ScalaTest     = "org.scalatest"              %% "scalatest"       % "3.0.9"
+  val ScalaTest     = "org.scalatest"              %% "scalatest"       % "3.2.17"
   val Logback       = "ch.qos.logback"              % "logback-classic" % "1.2.3"
   val scalax        = "com.github.t3hnar"          %% "scalax"          % "3.8.1"
   val Logging       = "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.2"
