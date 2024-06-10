@@ -20,7 +20,7 @@ trait FutureSequentialForKey extends Extension {
 class FutureSequentialForKeyImpl(factory: ActorRefFactory, name: Option[String])(implicit ec: ExecutionContext)
   extends FutureSequentialForKey {
 
-  private implicit val timeout = Timeout(5.seconds)
+  private implicit val timeout: Timeout = Timeout(5.seconds)
   private lazy val supervisor = {
     val props = Supervisor.props
     name map { name => factory.actorOf(props, name) } getOrElse factory.actorOf(props)

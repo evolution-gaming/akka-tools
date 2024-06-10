@@ -6,7 +6,7 @@ import akka.event.LoggingAdapter
 import akka.pattern.FutureRef
 import akka.persistence.JournalProtocol.DeleteMessagesTo
 import akka.persistence.SnapshotProtocol.DeleteSnapshots
-import com.github.t3hnar.scalax._
+import com.evolutiongaming.util.RichClass.RichClassOps
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

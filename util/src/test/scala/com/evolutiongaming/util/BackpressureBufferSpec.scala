@@ -1,11 +1,12 @@
 package com.evolutiongaming.util
 
 import com.evolutiongaming.test.ActorSpec
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.duration._
 
-class BackpressureBufferSpec extends WordSpec with ActorSpec with Matchers {
+class BackpressureBufferSpec extends AnyWordSpec with ActorSpec with Matchers {
   "BackpressureBuffer" should {
     "buffer not more then duration specified" in new Scope {
       ref ! "1"
