@@ -95,7 +95,7 @@ class RecoveryBreakerSpec extends AnyWordSpec with ActorSpec with Matchers {
       }
 
       def receiveCommand = {
-        case SaveSnapshot(snapshot) => saveSnapshot(snapshot)
+        case SaveSnapshot(snapshot) => this.saveSnapshot(snapshot)
         case x: SaveSnapshotSuccess => testActor ! x
         case x: SaveSnapshotFailure => testActor ! x
         case x: String              => persist(x) {sender() ! _}
