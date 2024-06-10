@@ -4,7 +4,7 @@ import sbt.Keys.{homepage, organizationName, startYear}
 lazy val commonSettings = Seq(
   scalacOptions in(Compile, doc) ++= Seq("-no-link-warnings"),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.7", "2.12.15"),
+  crossScalaVersions := Seq("2.13.14", "2.12.19", "3.3.3"),
   publishTo := Some(Resolver.evolutionReleases),
   versionScheme := Some("semver-spec")
 )
@@ -51,7 +51,6 @@ lazy val cluster = (project
       Logging,
       ConfigTools,
       Nel,
-      scalax,
       ScalaTest % Test))
   settings allSettings)
 
@@ -62,6 +61,7 @@ lazy val persistence = (project
     name := "akka-tools-persistence",
     libraryDependencies ++= Seq(
       Akka.Actor,
+      ScalaTools,
       ConfigTools,
       Akka.TestKit % Test,
       ScalaTest % Test))
@@ -75,7 +75,6 @@ lazy val serialization = (project
     libraryDependencies ++= Seq(
       Akka.Actor,
       Logging,
-      scalax,
       Akka.AkkaPersistence,
       ScalaTest % Test))
   settings allSettings)
@@ -101,3 +100,5 @@ lazy val test = (project
         Akka.TestKit, 
         ScalaTest))
   settings allSettings)
+
+addCommandAlias("check", "show version")

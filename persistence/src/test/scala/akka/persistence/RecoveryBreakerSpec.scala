@@ -5,11 +5,12 @@ import java.util.UUID
 import akka.actor.{ActorLogging, Props}
 import com.evolutiongaming.serialization.BrokenSerializer
 import com.evolutiongaming.test.ActorSpec
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.duration._
 
-class RecoveryBreakerSpec extends WordSpec with ActorSpec with Matchers {
+class RecoveryBreakerSpec extends AnyWordSpec with ActorSpec with Matchers {
 
   "RecoveryBreaker" should {
 
@@ -94,7 +95,7 @@ class RecoveryBreakerSpec extends WordSpec with ActorSpec with Matchers {
       }
 
       def receiveCommand = {
-        case SaveSnapshot(snapshot) => saveSnapshot(snapshot)
+        case SaveSnapshot(snapshot) => this.saveSnapshot(snapshot)
         case x: SaveSnapshotSuccess => testActor ! x
         case x: SaveSnapshotFailure => testActor ! x
         case x: String              => persist(x) {sender() ! _}
