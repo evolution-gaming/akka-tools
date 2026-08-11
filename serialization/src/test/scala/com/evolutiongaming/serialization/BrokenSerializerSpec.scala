@@ -1,9 +1,10 @@
 package com.evolutiongaming.serialization
 
 import com.evolutiongaming.serialization.BrokenSerializer._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class BrokenSerializerSpec extends WordSpec with Matchers {
+class BrokenSerializerSpec extends AnyWordSpec with Matchers {
   "BrokenSerializer" when {
 
     "toBinary" should {

@@ -1,9 +1,10 @@
 package akka.persistence
 
 import com.evolutiongaming.test.ActorSpec
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class PublicPersistenceSpec extends WordSpec with ActorSpec with Matchers {
+class PublicPersistenceSpec extends AnyWordSpec with ActorSpec with Matchers {
   "PublicPersistence" when {
     "journalFor" should {
       "return" in new ActorScope {
