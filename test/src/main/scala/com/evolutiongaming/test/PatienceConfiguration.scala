@@ -8,9 +8,9 @@ import scala.concurrent.duration._
 trait PatienceConfiguration extends scalatest.concurrent.PatienceConfiguration {
 
   protected lazy val testKitSettings: TestKitSettings = this match {
-    case x: ActorSpec            => TestKitExtension(x.system)
+    case x: ActorSpec => TestKitExtension(x.system)
     case x: ActorSpec#ActorScope => x.testKitSettings
-    case _                       => new TestKitSettings(TestConfig())
+    case _ => new TestKitSettings(TestConfig())
   }
 
   protected lazy val timeoutDuration: FiniteDuration = {

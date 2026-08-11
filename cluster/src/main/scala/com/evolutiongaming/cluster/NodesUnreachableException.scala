@@ -12,7 +12,7 @@ class NodesUnreachableException(addresses: Nel[Address], cause: Throwable) exten
 
   override def getMessage: String = addresses match {
     case Nel(node, Nil) => s"node $node is unreachable"
-    case nodes          => s"nodes ${ nodes mkString ", " } are unreachable"
+    case nodes => s"nodes ${ nodes mkString ", " } are unreachable"
   }
 }
 
@@ -21,7 +21,7 @@ object NodesUnreachableException {
   def opt(
     timeoutException: TimeoutException,
     system: ActorSystem,
-    role: Option[String] = None
+    role: Option[String] = None,
   ): Option[NodesUnreachableException] = {
 
     def unreachableAddresses(cluster: Cluster, role: Option[String]) =

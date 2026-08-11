@@ -20,7 +20,7 @@ trait DuplicatingActor extends Actor with ActorLogging {
     case x =>
       primary.tell(x, sender())
 
-      for {x <- Replicate.opt(x, failureLogger)} {
+      for { x <- Replicate.opt(x, failureLogger) } {
         secondary.tell(x, failureLogger)
       }
   }
@@ -54,8 +54,8 @@ class DuplicatingSnapshotStore extends DuplicatingActor {
 
 class FailureLogger extends Actor with ActorLogging {
   def receive: Receive = {
-    case JournalFailure(x)     => log.warning(s"Error received from ${ sender() }: $x")
-    case SnapshotFailure(x)    => log.warning(s"Error received from ${ sender() }: $x")
+    case JournalFailure(x) => log.warning(s"Error received from ${ sender() }: $x")
+    case SnapshotFailure(x) => log.warning(s"Error received from ${ sender() }: $x")
     case Status.Failure(cause) => log.warning(s"Error received from ${ sender() }: ", cause)
   }
 }

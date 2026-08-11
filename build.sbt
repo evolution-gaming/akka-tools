@@ -2,11 +2,11 @@ import Dependencies._
 import sbt.Keys.{homepage, organizationName, startYear}
 
 lazy val commonSettings = Seq(
-  Compile/doc / scalacOptions ++= Seq("-no-link-warnings"),
+  Compile / doc / scalacOptions ++= Seq("-no-link-warnings"),
   scalaVersion := crossScalaVersions.value.head,
   crossScalaVersions := Seq("2.13.18", "3.3.8"),
   publishTo := Some(Resolver.evolutionReleases),
-  versionScheme := Some("semver-spec")
+  versionScheme := Some("semver-spec"),
 )
 
 lazy val publishSettings = Seq(
@@ -15,31 +15,33 @@ lazy val publishSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(uri("http://evolution.com")),
   organization := "com.evolutiongaming",
-  licenses := Seq("MIT" -> uri("http://www.opensource.org/licenses/mit-license.html"))
+  licenses := Seq("MIT" -> uri("http://www.opensource.org/licenses/mit-license.html")),
 )
 
 lazy val allSettings = commonSettings ++ publishSettings
 
 lazy val akkaTools = project
-  .in (file("."))
-  .settings (name := "akka-tools")
-  .settings (allSettings)
+  .in(file("."))
+  .settings(name := "akka-tools")
+  .settings(allSettings)
   .aggregate(instrumentation, cluster, persistence, serialization, util, test)
 
 lazy val instrumentation = project
-  .in (file("instrumentation"))
-  .dependsOn (util)
-  .settings (
+  .in(file("instrumentation"))
+  .dependsOn(util)
+  .settings(
     name := "akka-tools-instrumentation",
     libraryDependencies ++= Seq(
       Akka.Actor,
       ConfigTools,
-      Prometheus.simpleclient))
-  .settings (allSettings)
+      Prometheus.simpleclient,
+    ),
+  )
+  .settings(allSettings)
 
 lazy val cluster = project
-  .in (file("cluster"))
-  .dependsOn (test % "test->compile")
+  .in(file("cluster"))
+  .dependsOn(test % "test->compile")
   .settings(
     name := "akka-tools-cluster",
     libraryDependencies ++= Seq(
@@ -50,12 +52,14 @@ lazy val cluster = project
       Logging,
       ConfigTools,
       Nel,
-      ScalaTest % Test))
-  .settings (allSettings)
+      ScalaTest % Test,
+    ),
+  )
+  .settings(allSettings)
 
 lazy val persistence = project
-  .in (file("persistence"))
-  .dependsOn (serialization, test % "test->compile")
+  .in(file("persistence"))
+  .dependsOn(serialization, test % "test->compile")
   .settings(
     name := "akka-tools-persistence",
     libraryDependencies ++= Seq(
@@ -63,41 +67,52 @@ lazy val persistence = project
       ScalaTools,
       ConfigTools,
       Akka.TestKit % Test,
-      ScalaTest % Test))
-  .settings (allSettings)
+      ScalaTest % Test,
+    ),
+  )
+  .settings(allSettings)
 
 lazy val serialization = project
-  .in (file("serialization"))
-  .dependsOn (test % "test->compile")
+  .in(file("serialization"))
+  .dependsOn(test % "test->compile")
   .settings(
     name := "akka-tools-serialization",
     libraryDependencies ++= Seq(
       Akka.Actor,
       Logging,
       Akka.AkkaPersistence,
-      ScalaTest % Test))
-  .settings (allSettings)
+      ScalaTest % Test,
+    ),
+  )
+  .settings(allSettings)
 
 lazy val util = project
-  .in (file("util"))
-  .dependsOn (test % "test->compile")
+  .in(file("util"))
+  .dependsOn(test % "test->compile")
   .settings(
     name := "akka-tools-util",
     libraryDependencies ++= Seq(
       Akka.Actor,
       Akka.TestKit % Test,
       ScalaTest % Test,
-      Logging))
-  .settings (allSettings)
+      Logging,
+    ),
+  )
+  .settings(allSettings)
 
 lazy val test = project
-  .in (file("test"))
+  .in(file("test"))
   .settings(
     name := "akka-tools-test",
     libraryDependencies ++= Seq(
-        Akka.Actor, 
-        Akka.TestKit, 
-        ScalaTest))
-  .settings (allSettings)
+      Akka.Actor,
+      Akka.TestKit,
+      ScalaTest,
+    ),
+  )
+  .settings(allSettings)
 
-addCommandAlias("check", "show version")
+// check is called with + from the release action
+addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckRepo")
+addCommandAlias("fmt", "+all scalafmtRepo")
+addCommandAlias("build", "all compile testFull")

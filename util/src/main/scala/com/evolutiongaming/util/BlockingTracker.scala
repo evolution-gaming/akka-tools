@@ -8,7 +8,7 @@ import scala.concurrent.{BlockContext, CanAwait}
 
 object BlockingTracker extends LazyLogging {
 
-  trait Surround {def apply[T](f: () => T): T }
+  trait Surround { def apply[T](f: () => T): T }
 
   val Empty: Surround = new Surround {
     override def apply[T](f: () => T): T = f()
@@ -22,7 +22,11 @@ object BlockingTracker extends LazyLogging {
           val nonTracking = BlockContext.current
 
           val tracking = new BlockContext {
-            override def blockOn[A](thunk: => A)(implicit permission: CanAwait): A = {
+            override def blockOn[A](
+              thunk: => A,
+            )(implicit
+              permission: CanAwait,
+            ): A = {
 
               val thread = Thread.currentThread()
               val stacktrace = stackTraceToString(thread.getStackTrace)

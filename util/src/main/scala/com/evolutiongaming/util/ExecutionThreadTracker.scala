@@ -1,10 +1,9 @@
 package com.evolutiongaming.util
 
-import java.lang.management.{ManagementFactory, ThreadMXBean}
-import java.util.concurrent.{Executors, ScheduledExecutorService}
-
 import com.typesafe.scalalogging.LazyLogging
 
+import java.lang.management.{ManagementFactory, ThreadMXBean}
+import java.util.concurrent.{Executors, ScheduledExecutorService}
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
@@ -30,7 +29,7 @@ object ExecutionThreadTracker extends LazyLogging {
     checkInterval: FiniteDuration = 1.second,
     maxDepth: Int = 300,
     threads: ThreadMXBean = threads,
-    executorService: ScheduledExecutorService = executorService
+    executorService: ScheduledExecutorService = executorService,
   ): ExecutionThreadTracker = {
 
     val cache = TrieMap.empty[ThreadId, StartTime]
@@ -49,10 +48,14 @@ object ExecutionThreadTracker extends LazyLogging {
             val threadName = threadInfo.getThreadName
             val stackTrace = threadInfo.getStackTrace
             if (waitsOnJdbcSocketRead(stackTrace)) {
-              logger.warn(s"Hanging for ${duration.toMillis} ms dispatcher thread detected: thread $threadName, waits on JDBC socket read")
+              logger.warn(
+                s"Hanging for ${ duration.toMillis } ms dispatcher thread detected: thread $threadName, waits on JDBC socket read",
+              )
             } else {
               val formattedStackTrace = stackTraceToString(stackTrace)
-              logger.error(s"Hanging for ${duration.toMillis} ms dispatcher thread detected: thread $threadName, current state:\t$formattedStackTrace")
+              logger.error(
+                s"Hanging for ${ duration.toMillis } ms dispatcher thread detected: thread $threadName, current state:\t$formattedStackTrace",
+              )
             }
           }
         } catch {
@@ -61,7 +64,6 @@ object ExecutionThreadTracker extends LazyLogging {
       }
     }
     executorService.scheduleWithFixedDelay(runnable, checkInterval.length, checkInterval.length, checkInterval.unit)
-
 
     val add = (threadId: ThreadId) => {
       val startTime = System.nanoTime()
@@ -79,14 +81,15 @@ object ExecutionThreadTracker extends LazyLogging {
 
   def apply(
     add: ExecutionThreadTracker.ThreadId => Unit,
-    remove: ExecutionThreadTracker.ThreadId => Unit
+    remove: ExecutionThreadTracker.ThreadId => Unit,
   ): ExecutionThreadTracker = {
 
     new ExecutionThreadTracker {
 
       def apply[T](f: => T): T = {
         val stop = start()
-        try f finally stop()
+        try f
+        finally stop()
       }
 
       def start(): () => Unit = {

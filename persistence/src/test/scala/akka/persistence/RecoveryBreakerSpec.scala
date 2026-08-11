@@ -1,13 +1,12 @@
 package akka.persistence
 
-import java.util.UUID
-
 import akka.actor.{ActorLogging, Props}
 import com.evolutiongaming.serialization.BrokenSerializer
 import com.evolutiongaming.test.ActorSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import java.util.UUID
 import scala.concurrent.duration._
 
 class RecoveryBreakerSpec extends AnyWordSpec with ActorSpec with Matchers {
@@ -89,8 +88,9 @@ class RecoveryBreakerSpec extends AnyWordSpec with ActorSpec with Matchers {
           saveSnapshotOncePer = 2,
           allowedNumberOfEvents = 2,
           action = Action.Clear(3.seconds),
-          replayDelay = 0.seconds) {
-          envelopes => for {envelope <- envelopes} envelope.sender ! envelope.message
+          replayDelay = 0.seconds,
+        ) {
+          envelopes => for { envelope <- envelopes } envelope.sender ! envelope.message
         }
       }
 
@@ -98,13 +98,13 @@ class RecoveryBreakerSpec extends AnyWordSpec with ActorSpec with Matchers {
         case SaveSnapshot(snapshot) => this.saveSnapshot(snapshot)
         case x: SaveSnapshotSuccess => testActor ! x
         case x: SaveSnapshotFailure => testActor ! x
-        case x: String              => persist(x) {sender() ! _}
+        case x: String => persist(x) { sender() ! _ }
       }
 
       def receiveRecover = {
-        case RecoveryCompleted                  => testActor ! RecoveryCompleted
+        case RecoveryCompleted => testActor ! RecoveryCompleted
         case SnapshotOffer(_, snapshot: String) => testActor ! snapshot
-        case x: String                          =>
+        case x: String =>
           testActor ! x
           recoveryBreaker.onEventRecover(lastSequenceNr)
       }

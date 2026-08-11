@@ -1,15 +1,14 @@
 package akka.dispatch
 
-import java.util.concurrent.ForkJoinTask
-
 import com.evolutiongaming.util.dispatchers.Instrumented.Run
 
+import java.util.concurrent.ForkJoinTask
 import scala.PartialFunction.condOpt
 
 object OverrideAkkaRunnable {
   def unapply(runnable: Runnable): Option[Run => Runnable] = condOpt(runnable) {
     case runnable: Batchable => new OverrideBatchable(runnable, _)
-    case runnable: Mailbox   => new OverrideMailbox(runnable, _)
+    case runnable: Mailbox => new OverrideMailbox(runnable, _)
   }
 
   class OverrideBatchable(self: Batchable, r: Run) extends Batchable {

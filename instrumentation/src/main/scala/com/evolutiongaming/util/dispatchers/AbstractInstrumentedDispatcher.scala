@@ -4,9 +4,11 @@ import akka.dispatch._
 import com.evolutiongaming.config.ConfigHelper._
 import com.typesafe.config.Config
 
-/** Instrumented clone of [[akka.dispatch.DispatcherConfigurator]]. */
+/**
+ * Instrumented clone of [[akka.dispatch.DispatcherConfigurator]].
+ */
 abstract class AbstractInstrumentedDispatcher(config: Config, prerequisites: DispatcherPrerequisites)
-  extends MessageDispatcherConfigurator(config, prerequisites) {
+extends MessageDispatcherConfigurator(config, prerequisites) {
 
   private val instance = new Dispatcher(
     this,
@@ -14,7 +16,7 @@ abstract class AbstractInstrumentedDispatcher(config: Config, prerequisites: Dis
     config.getInt("throughput"),
     config.get("throughput-deadline-time"),
     configureExecutor(),
-    config.get("shutdown-timeout")
+    config.get("shutdown-timeout"),
   ) with InstrumentedDispatcherMixin {
 
     def metrics = AbstractInstrumentedDispatcher.this.metrics

@@ -9,16 +9,20 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-
 /**
-  * Runs functions asynchronously sequentially if key matches, or in parallel otherwise
-  */
+ * Runs functions asynchronously sequentially if key matches, or in parallel otherwise
+ */
 trait FutureSequentialForKey extends Extension {
   def apply[T](key: Any)(f: => T): Future[T]
 }
 
-class FutureSequentialForKeyImpl(factory: ActorRefFactory, name: Option[String])(implicit ec: ExecutionContext)
-  extends FutureSequentialForKey {
+class FutureSequentialForKeyImpl(
+  factory: ActorRefFactory,
+  name: Option[String],
+)(implicit
+  ec: ExecutionContext,
+)
+extends FutureSequentialForKey {
 
   private implicit val timeout: Timeout = Timeout(5.seconds)
   private lazy val supervisor = {
@@ -45,17 +49,16 @@ class FutureSequentialForKeyImpl(factory: ActorRefFactory, name: Option[String])
 
     def receive(keys: Map[ActorRef, Any]): Receive = {
       case Create(key, enqueue) => refs.get(key) match {
-        case Some(ref) => ref.tell(enqueue, sender())
-        case None      =>
-          val ref = context watch (context actorOf FutureSupervisor.props)
-          ref.tell(enqueue, sender())
-          refs += (key -> ref)
-          context become receive(keys + (ref -> key))
-      }
-
+          case Some(ref) => ref.tell(enqueue, sender())
+          case None =>
+            val ref = context watch (context actorOf FutureSupervisor.props)
+            ref.tell(enqueue, sender())
+            refs += (key -> ref)
+            context become receive(keys + (ref -> key))
+        }
 
       case Terminated(ref) =>
-        for {key <- keys get ref} refs -= key
+        for { key <- keys get ref } refs -= key
         context become receive(keys - ref)
     }
   }
@@ -65,7 +68,6 @@ class FutureSequentialForKeyImpl(factory: ActorRefFactory, name: Option[String])
 
     case class Create(key: Any, enqueue: FutureSupervisor.Enqueue)
   }
-
 
   private class FutureSupervisor extends Actor {
     import FutureSupervisor._

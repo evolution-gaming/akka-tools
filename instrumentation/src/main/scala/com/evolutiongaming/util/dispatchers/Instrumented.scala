@@ -1,13 +1,12 @@
 package com.evolutiongaming.util.dispatchers
 
-import java.util.ConcurrentModificationException
-
 import akka.dispatch.OverrideAkkaRunnable
 import com.evolutiongaming.util.BlockingTracker.Surround
 import com.evolutiongaming.util.{BlockingTracker, ExecutionThreadTracker}
 import io.prometheus.client.{Collector, CollectorRegistry, Gauge, Summary}
 import org.slf4j.MDC
 
+import java.util.ConcurrentModificationException
 
 trait Instrumented {
 
@@ -15,12 +14,11 @@ trait Instrumented {
 }
 
 object Instrumented {
-  trait Run {def apply[T](f: () => T): T }
+  trait Run { def apply[T](f: () => T): T }
 
   type Instrument = () => BeforeRun
   type BeforeRun = () => AfterRun
   type AfterRun = () => Unit
-
 
   def apply(config: InstrumentedConfig, metrics: Metrics.Of): Instrumented = {
 
@@ -46,9 +44,9 @@ object Instrumented {
     object OverrideRunnable {
 
       def apply(runnable: Runnable, r: Run): Runnable = runnable match {
-        case OverrideAkkaRunnable(runnable)  => runnable(r)
+        case OverrideAkkaRunnable(runnable) => runnable(r)
         case OverrideScalaRunnable(runnable) => runnable(r)
-        case runnable                        => new Default(runnable, r)
+        case runnable => new Default(runnable, r)
       }
 
       class Default(self: Runnable, r: Run) extends Runnable {
@@ -59,11 +57,12 @@ object Instrumented {
     new Instrumented {
 
       def apply(runnable: Runnable, execute: Runnable => Unit): Unit = {
-        val beforeRuns = for {f <- instruments} yield f()
+        val beforeRuns = for { f <- instruments } yield f()
         val run = new Run {
           def apply[T](run: () => T): T = {
-            val afterRuns = for {f <- beforeRuns} yield f()
-            try surround(run) finally for {f <- afterRuns} f()
+            val afterRuns = for { f <- beforeRuns } yield f()
+            try surround(run)
+            finally for { f <- afterRuns } f()
           }
         }
         val overridden = OverrideRunnable(runnable, run)
@@ -72,12 +71,12 @@ object Instrumented {
     }
   }
 
-
   object Instrument {
     val Empty: Instrument = () => () => () => ()
 
     val Mdc: Instrument = () => {
-      val mdc = try MDC.getCopyOfContextMap catch { case _: ConcurrentModificationException => null }
+      val mdc = try MDC.getCopyOfContextMap
+      catch { case _: ConcurrentModificationException => null }
       () => {
         if (mdc == null) MDC.clear() else MDC.setContextMap(mdc)
         () => {
@@ -87,36 +86,38 @@ object Instrumented {
     }
 
     def metrics(metrics: Metrics): Instrument = {
-      () => {
-        val created = System.nanoTime()
-        () => {
-          val started = System.nanoTime()
-          metrics.queue(started - created)
+      () =>
+        {
+          val created = System.nanoTime()
           () => {
-            val stopped = System.nanoTime()
-            metrics.run(stopped - started)
+            val started = System.nanoTime()
+            metrics.queue(started - created)
+            () => {
+              val stopped = System.nanoTime()
+              metrics.run(stopped - started)
+            }
           }
         }
-      }
     }
 
     def executionTracker(config: InstrumentedConfig.ExecutionTracker): Instrument = {
 
       val tracker = ExecutionThreadTracker(
         hangingThreshold = config.hangingThreshold,
-        checkInterval = config.checkInterval)
+        checkInterval = config.checkInterval,
+      )
 
       () => {
-        () => {
-          val stop = tracker.start()
-          () => {
-            stop()
+        () =>
+          {
+            val stop = tracker.start()
+            () => {
+              stop()
+            }
           }
-        }
       }
     }
   }
-
 
   trait Metrics {
 
