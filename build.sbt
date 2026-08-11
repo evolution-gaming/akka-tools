@@ -1,5 +1,6 @@
-import Dependencies._
+import Dependencies.*
 import sbt.Keys.{homepage, organizationName, startYear}
+import sbtversionpolicy.Compatibility.BinaryCompatible
 
 lazy val commonSettings = Seq(
   Compile / doc / scalacOptions ++= Seq("-no-link-warnings"),
@@ -7,6 +8,7 @@ lazy val commonSettings = Seq(
   crossScalaVersions := Seq("2.13.18", "3.3.8"),
   publishTo := Some(Resolver.evolutionReleases),
   versionScheme := Some("semver-spec"),
+  versionPolicyIntention := BinaryCompatible,
 )
 
 lazy val publishSettings = Seq(
