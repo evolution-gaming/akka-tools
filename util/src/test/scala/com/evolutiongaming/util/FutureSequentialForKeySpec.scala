@@ -2,11 +2,12 @@ package com.evolutiongaming.util
 
 import com.evolutiongaming.test.ActorSpec
 import org.scalatest.concurrent.{ScalaFutures, TimeLimits}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.util.control.NoStackTrace
 
-class FutureSequentialForKeySpec extends WordSpec with ActorSpec with Matchers with ScalaFutures with TimeLimits {
+class FutureSequentialForKeySpec extends AnyWordSpec with ActorSpec with Matchers with ScalaFutures with TimeLimits {
   "FutureSequentialForKey" should {
     "perform tasks for same key sequentially in same order they were sent" in new Scope {
       for {_ <- 0 to 10} {
