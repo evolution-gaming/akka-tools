@@ -9,6 +9,11 @@ lazy val commonSettings = Seq(
   publishTo := Some(Resolver.evolutionReleases),
   versionScheme := Some("semver-spec"),
   versionPolicyIntention := BinaryCompatible,
+  versionPolicyIgnored ++= Seq(
+    // add libraries here that are known to be binary compatible, like:
+    // TODO comment after next release
+    "io.prometheus" % "simpleclient",
+  ),
 )
 
 lazy val publishSettings = Seq(
