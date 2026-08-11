@@ -13,7 +13,6 @@ lazy val publishSettings = Seq(
   homepage := Some(uri("http://github.com/evolution-gaming/akka-tools")),
   startYear := Some(2016),
   organizationName := "Evolution",
-  releaseCrossBuild := true,
   organizationHomepage := Some(uri("http://evolution.com")),
   organization := "com.evolutiongaming",
   licenses := Seq("MIT" -> uri("http://www.opensource.org/licenses/mit-license.html"))
