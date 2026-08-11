@@ -23,33 +23,36 @@ private class RecoveryBreakerImp(
   actor: PersistentActor,
   action: => RecoveryBreaker.Action,
   replay: Iterable[Envelope] => Unit,
-  replayDelay: FiniteDuration) extends RecoveryBreaker {
+  replayDelay: FiniteDuration,
+) extends RecoveryBreaker {
 
   import RecoveryBreaker._
   import actor.context.{dispatcher, system}
 
   require(
     allowedNumberOfEvents >= saveSnapshotOncePer,
-    s"allowedNumberOfEvents < saveSnapshotOncePer, $allowedNumberOfEvents < $saveSnapshotOncePer")
+    s"allowedNumberOfEvents < saveSnapshotOncePer, $allowedNumberOfEvents < $saveSnapshotOncePer",
+  )
 
   private var numberOfEvents: Int = 0
 
   def onRecoveryFailure(cause: Throwable) = cause match {
     case _: BreakRecoveryException =>
-    case _                         => action match {
-      case Action.Clear(timeout) => clearAndReplay(timeout)
-      case Action.Stop           =>
-      case Action.Ignore         =>
-    }
+    case _ => action match {
+        case Action.Clear(timeout) => clearAndReplay(timeout)
+        case Action.Stop =>
+        case Action.Ignore =>
+      }
   }
 
   def onEventRecover(sequenceNr: Long): Unit = {
     numberOfEvents += 1
 
-    def logMsg = s"${actor.persistenceId}($sequenceNr) recovered $numberOfEvents events, while save-snapshot-once-per=$saveSnapshotOncePer"
+    def logMsg =
+      s"${ actor.persistenceId }($sequenceNr) recovered $numberOfEvents events, while save-snapshot-once-per=$saveSnapshotOncePer"
 
     if (numberOfEvents == allowedNumberOfEvents) {
-      val msg = s"$logMsg: action: ${action.getClass.simpleName}"
+      val msg = s"$logMsg: action: ${ action.getClass.simpleName }"
 
       def onClear(timeout: FiniteDuration) = {
         clearAndReplay(timeout)
@@ -58,8 +61,8 @@ private class RecoveryBreakerImp(
 
       action match {
         case Action.Clear(timeout) => onClear(timeout)
-        case Action.Stop           => throw new BreakRecoveryException(msg)
-        case Action.Ignore         => log.error(msg)
+        case Action.Stop => throw new BreakRecoveryException(msg)
+        case Action.Ignore => log.error(msg)
       }
     } else if (numberOfEvents == saveSnapshotOncePer) {
       log.warning(logMsg)
@@ -67,9 +70,9 @@ private class RecoveryBreakerImp(
   }
 
   private def log: LoggingAdapter = actor match {
-    case actor: ActorLogging           => actor.log
+    case actor: ActorLogging => actor.log
     case actor: DiagnosticActorLogging => actor.log
-    case _                             => system.log
+    case _ => system.log
   }
 
   private def clearAndReplay(timeout: FiniteDuration): Unit = {
@@ -116,7 +119,10 @@ object RecoveryBreaker {
     allowedNumberOfEvents: Long,
     actor: PersistentActor,
     action: => RecoveryBreaker.Action,
-    replayDelay: FiniteDuration = 300.millis)(replay: Iterable[Envelope] => Unit): RecoveryBreaker = {
+    replayDelay: FiniteDuration = 300.millis,
+  )(
+    replay: Iterable[Envelope] => Unit,
+  ): RecoveryBreaker = {
 
     new RecoveryBreakerImp(
       saveSnapshotOncePer = saveSnapshotOncePer,
@@ -124,7 +130,8 @@ object RecoveryBreaker {
       actor = actor,
       action = action,
       replay = replay,
-      replayDelay = replayDelay)
+      replayDelay = replayDelay,
+    )
   }
 
   sealed trait Action
@@ -139,7 +146,7 @@ object RecoveryBreaker {
   object ReflectValue {
     def apply[T](name: String, instance: AnyRef): T = {
       val fields = instance.getClass.getDeclaredFields
-      val field = fields find {_.getName endsWith name} getOrElse {throw new NoSuchFieldException(name)}
+      val field = fields find { _.getName endsWith name } getOrElse { throw new NoSuchFieldException(name) }
       field.setAccessible(true)
       val value = field.get(instance)
       value.asInstanceOf[T]

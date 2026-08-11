@@ -1,11 +1,9 @@
 package com.evolutiongaming.serialization
 
-import java.nio.charset.Charset
-
 import akka.serialization.SerializerWithStringManifest
 
+import java.nio.charset.Charset
 import scala.util.control.NoStackTrace
-
 
 class BrokenSerializer extends SerializerWithStringManifest {
   import BrokenSerializer._
@@ -14,19 +12,19 @@ class BrokenSerializer extends SerializerWithStringManifest {
 
   def manifest(x: AnyRef) = x match {
     case x: FailTo => x.getClass.getName
-    case _         => sys error s"Unexpected $x"
+    case _ => sys error s"Unexpected $x"
   }
 
   def toBinary(x: AnyRef) = x match {
-    case x: FailTo.Serialize   => throw new FailToSerializeException(x.value)
+    case x: FailTo.Serialize => throw new FailToSerializeException(x.value)
     case x: FailTo.Deserialize => x.value getBytes Utf8
-    case _                     => sys error s"Unexpected $x"
+    case _ => sys error s"Unexpected $x"
   }
 
   def fromBinary(bytes: Array[Byte], manifest: String) = manifest match {
     case FailTo.Deserialize.Manifest => throw new FailToDeserializeException
-    case FailTo.Serialize.Manifest   => FailTo.Serialize(new String(bytes, Utf8))
-    case _                           => sys error s"Unexpected $manifest"
+    case FailTo.Serialize.Manifest => FailTo.Serialize(new String(bytes, Utf8))
+    case _ => sys error s"Unexpected $manifest"
   }
 }
 

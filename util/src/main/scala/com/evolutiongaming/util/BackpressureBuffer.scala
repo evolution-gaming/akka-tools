@@ -7,11 +7,12 @@ import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
-class BackpressureBuffer[T] private(
+class BackpressureBuffer[T] private (
   onReceive: (Any, ActorRef) => Option[T],
   onUnbuffer: Queue[T] => Any,
   timeout: FiniteDuration,
-  size: Int) extends Actor with ActorLogging {
+  size: Int,
+) extends Actor with ActorLogging {
 
   import BackpressureBuffer._
   import context.dispatcher
@@ -24,7 +25,8 @@ class BackpressureBuffer[T] private(
   def receive(buffer: Queue[T], id: Int): Receive = {
 
     def unbuffer(buffer: Queue[T]) = {
-      try onUnbuffer(buffer) catch {
+      try onUnbuffer(buffer)
+      catch {
         case NonFatal(e) => log.error(e, "Failed to apply func to {}", buffer)
       }
       context become receive(Queue.empty, id + 1)
@@ -40,10 +42,10 @@ class BackpressureBuffer[T] private(
     }
 
     {
-      case Flush      => if (buffer.nonEmpty) unbuffer(buffer)
+      case Flush => if (buffer.nonEmpty) unbuffer(buffer)
       case Tick(`id`) => if (buffer.nonEmpty) unbuffer(buffer)
-      case Tick(_)    =>
-      case entry      => for {entry <- onReceive(entry, sender())} onEntry(buffer enqueue entry)
+      case Tick(_) =>
+      case entry => for { entry <- onReceive(entry, sender()) } onEntry(buffer enqueue entry)
     }
   }
 
@@ -56,7 +58,8 @@ object BackpressureBuffer {
     onReceive: (Any, ActorRef) => Option[T],
     onUnbuffer: Queue[T] => Any,
     timeout: FiniteDuration,
-    size: Int): Props = {
+    size: Int,
+  ): Props = {
 
     Props(new BackpressureBuffer(onReceive, onUnbuffer, timeout, size))
   }
@@ -64,7 +67,10 @@ object BackpressureBuffer {
   def propsByType[T](
     onUnbuffer: Queue[T] => Any,
     timeout: FiniteDuration,
-    size: Int)(implicit tag: ClassTag[T]): Props = {
+    size: Int,
+  )(implicit
+    tag: ClassTag[T],
+  ): Props = {
 
     val onReceive = (x: Any, _: AnyRef) => tag unapply x
 

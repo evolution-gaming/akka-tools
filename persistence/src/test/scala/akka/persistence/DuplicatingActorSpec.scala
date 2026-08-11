@@ -69,7 +69,7 @@ class DuplicatingActorSpec extends AnyWordSpec with ActorSpec with Matchers {
       override val failureLogger: ActorRef = logger.ref
 
       def actorForId(name: String) = name match {
-        case "primary"   => TestScope.this.primary.ref
+        case "primary" => TestScope.this.primary.ref
         case "secondary" => TestScope.this.secondary.ref
       }
       def primaryName = "evolutiongaming.duplicating.test.primary"

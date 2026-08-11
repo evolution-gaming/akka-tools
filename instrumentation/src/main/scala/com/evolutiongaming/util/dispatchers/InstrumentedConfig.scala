@@ -25,10 +25,10 @@ object InstrumentedConfig {
     )
   }
 
-  
   case class ExecutionTracker(
     hangingThreshold: FiniteDuration = 10.seconds,
-    checkInterval: FiniteDuration = 1.seconds)
+    checkInterval: FiniteDuration = 1.seconds,
+  )
 
   object ExecutionTracker {
     val Default: ExecutionTracker = ExecutionTracker()
@@ -36,7 +36,8 @@ object InstrumentedConfig {
     def opt(config: Config): Option[ExecutionTracker] = {
       def executionTracker = ExecutionTracker(
         hangingThreshold = config.getOpt[FiniteDuration]("hanging-threshold") getOrElse Default.hangingThreshold,
-        checkInterval = config.getOpt[FiniteDuration]("check-interval") getOrElse Default.checkInterval)
+        checkInterval = config.getOpt[FiniteDuration]("check-interval") getOrElse Default.checkInterval,
+      )
 
       val enabled = config.getOpt[Boolean]("enabled") getOrElse false
       if (enabled) Some(executionTracker) else None

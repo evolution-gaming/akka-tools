@@ -1,7 +1,7 @@
 package com.evolutiongaming.persistence
 
-import org.scalatest.matchers.should.Matchers._
 import org.scalatest.OptionValues._
+import org.scalatest.matchers.should.Matchers._
 import org.scalatest.wordspec.AnyWordSpec
 
 class PersistenceIdSpec extends AnyWordSpec {

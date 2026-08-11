@@ -12,12 +12,10 @@ class LogUnreachable(system: ExtendedActorSystem) extends Extension {
 
   def start(): Unit = { ref; () }
 
-
   private class Listener extends Actor with ActorLogging {
     private val cluster = Cluster(context.system)
 
     private var queue = Queue.empty[ClusterDomainEvent]
-
 
     override def preStart() = {
       super.preStart()
@@ -27,13 +25,13 @@ class LogUnreachable(system: ExtendedActorSystem) extends Extension {
 
     def receive = {
       case x: ClusterDomainEvent => x match {
-        case x: UnreachableMember  => onUnreachableMember(x.member); enqueue(x)
-        case x: MemberEvent        => enqueue(x)
-        case x: ReachabilityEvent  => enqueue(x)
-        case x: LeaderChanged      => enqueue(x)
-        case x@ClusterShuttingDown => enqueue(x)
-        case _                     =>
-      }
+          case x: UnreachableMember => onUnreachableMember(x.member); enqueue(x)
+          case x: MemberEvent => enqueue(x)
+          case x: ReachabilityEvent => enqueue(x)
+          case x: LeaderChanged => enqueue(x)
+          case x @ ClusterShuttingDown => enqueue(x)
+          case _ =>
+        }
     }
 
     def enqueue(event: ClusterDomainEvent) = {
@@ -41,7 +39,9 @@ class LogUnreachable(system: ExtendedActorSystem) extends Extension {
     }
 
     def onUnreachableMember(member: Member) = {
-      log.warning(s"node ${member.address} is Unreachable, cluster: ${cluster.state}, events: ${queue mkString ","}")
+      log.warning(
+        s"node ${ member.address } is Unreachable, cluster: ${ cluster.state }, events: ${ queue mkString "," }",
+      )
     }
   }
 }

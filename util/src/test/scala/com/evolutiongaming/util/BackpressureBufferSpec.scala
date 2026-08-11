@@ -17,7 +17,7 @@ class BackpressureBufferSpec extends AnyWordSpec with ActorSpec with Matchers {
     }
 
     "buffer until size reached" in new Scope {
-      for {x <- 0 to (size * 2)} ref ! x.toString
+      for { x <- 0 to (size * 2) } ref ! x.toString
       expectMsg("01234")
       expectMsg("56789")
 
