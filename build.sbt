@@ -1,5 +1,6 @@
 import Dependencies.*
-import sbt.Keys.{homepage, organizationName, startYear}
+import com.typesafe.tools.mima.core.*
+import sbt.Keys.*
 import sbtversionpolicy.Compatibility.BinaryCompatible
 
 lazy val commonSettings = Seq(
@@ -13,6 +14,13 @@ lazy val commonSettings = Seq(
     // add libraries here that are known to be binary compatible, like:
     // TODO comment after next release
     "io.prometheus" % "simpleclient",
+  ),
+  mimaBinaryIssueFilters ++= Seq(
+    // add mima check exceptions here, like:
+    // TODO comment after next release
+    ProblemFilters.exclude[DirectMissingMethodProblem](
+      "com.evolutiongaming.util.dispatchers.Instrumented#OverrideRunnable#2#Default.this",
+    ),
   ),
 )
 
