@@ -21,7 +21,8 @@ object Dependencies {
   val ConfigTools   = "com.evolutiongaming"        %% "config-tools"    % "1.0.4"
 
   object Prometheus {
-    private val version = "0.16.0"
+    // fixing the prometheus version in place because we use a 0.9.0 fork internally
+    private val version = "0.9.0" // scala-steward:off
     val simpleclient = "io.prometheus" % "simpleclient" % version
   }
 }
