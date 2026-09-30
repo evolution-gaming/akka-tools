@@ -6,7 +6,7 @@ import sbtversionpolicy.Compatibility.BinaryCompatible
 lazy val commonSettings = Seq(
   Compile / doc / scalacOptions ++= Seq("-no-link-warnings"),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.18", "3.3.8"),
+  crossScalaVersions := Seq("2.13.18", "3.9.0"),
   publishTo := Some(Resolver.evolutionReleases),
   versionScheme := Some("semver-spec"),
   versionPolicyIntention := BinaryCompatible,
