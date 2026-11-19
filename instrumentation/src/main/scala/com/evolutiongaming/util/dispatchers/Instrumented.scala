@@ -158,23 +158,24 @@ object Instrumented {
           .labelNames("dispatcher")
           .register(registry)
 
-        def observeLatency(latencyNanos: Long, phase: String, dispatcher: String) = {
-          latencySummary
-            .labels(dispatcher, phase)
-            .observe(latencyNanos.toDouble / Collector.NANOSECONDS_PER_SECOND)
-        }
+        def toSeconds(latencyNanos: Long) = latencyNanos.toDouble / Collector.NANOSECONDS_PER_SECOND
 
+        // children are resolved once per dispatcher instead of on every task, but still lazily, so that a series
+        // appears only after the dispatcher has run something, as before
         dispatcher =>
           new Metrics {
+            private lazy val workers = workersGauge.labels(dispatcher)
+            private lazy val queueLatency = latencySummary.labels(dispatcher, "queue")
+            private lazy val runLatency = latencySummary.labels(dispatcher, "run")
 
             def queue(latencyNanos: Long) = {
-              workersGauge.labels(dispatcher).inc()
-              observeLatency(latencyNanos, dispatcher = dispatcher, phase = "queue")
+              workers.inc()
+              queueLatency.observe(toSeconds(latencyNanos))
             }
 
             def run(latencyNanos: Long) = {
-              workersGauge.labels(dispatcher).dec()
-              observeLatency(latencyNanos, dispatcher = dispatcher, phase = "run")
+              workers.dec()
+              runLatency.observe(toSeconds(latencyNanos))
             }
           }
       }
