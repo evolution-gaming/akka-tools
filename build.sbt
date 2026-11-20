@@ -50,6 +50,9 @@ lazy val instrumentation = project
       Akka.Actor,
       ConfigTools,
       Prometheus.simpleclient,
+      // optional so that consumers still on the 0.x simpleclient do not get the 1.x client on their classpath
+      PrometheusV1.metricsCore % Optional,
+      ScalaTest % Test,
     ),
   )
   .settings(allSettings)

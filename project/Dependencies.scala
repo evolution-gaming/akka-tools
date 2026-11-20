@@ -24,4 +24,9 @@ object Dependencies {
     private val version = "0.9.0" // scala-steward:off
     val simpleclient = "io.prometheus" % "simpleclient" % version
   }
+
+  object PrometheusV1 {
+    private val version = "1.10.0"
+    val metricsCore = "io.prometheus" % "prometheus-metrics-core" % version
+  }
 }
