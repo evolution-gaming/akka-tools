@@ -22,7 +22,8 @@ Instrumented.Metrics.Of(collectorRegistry)
 PrometheusV1MetricsOf(prometheusRegistry)
 ```
 
-Both expose the same metric names, labels and quantiles.
+Both expose the same metric names, labels and quantiles. The 1.x client computes the `dispatcher_latency`
+quantiles over the last 5 minutes instead of 10 as in the 0.x client.
 
 ## Setup
 
