@@ -10,6 +10,21 @@ ExtractShardId is an interface of the function used by Akka sharding to extract 
 Our implementation of ExtractShardId supports mapping of specific EntityId-s to specific ShardId-s.
 All other not pre-configured EntityId-s will be mapped to equal individual ShardId-s.
 
+### Instrumented dispatchers
+`akka-tools-instrumentation` provides dispatchers that report queue and run latency (`dispatcher_latency`) and the
+number of busy workers (`dispatcher_workers`) to Prometheus. Pick the metrics for the Prometheus client you use:
+
+```scala
+// Prometheus simpleclient 0.x
+Instrumented.Metrics.Of(collectorRegistry)
+
+// Prometheus client 1.x: add "io.prometheus" % "prometheus-metrics-core" to your dependencies first
+PrometheusV1MetricsOf(prometheusRegistry)
+```
+
+Both expose the same metric names, labels and quantiles. The 1.x client computes the `dispatcher_latency`
+quantiles over the last 5 minutes instead of 10 as in the 0.x client.
+
 ## Setup
 
 ```scala
